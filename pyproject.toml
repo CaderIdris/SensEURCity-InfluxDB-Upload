@@ -1,10 +1,10 @@
 [project]
 name = "senseurcity"
-version = "0.0.0"
-requires-python = ">=3.9"
-description = "Upload SensEURCity data to InfluxDB database"
+version = "0.1.0"
+requires-python = ">=3.11"
+description = "Reformat SensEURCity data to SQL DB"
 authors = [
-	{name="Idris Hayward", email="CaderIdrisGH@outlook.com"}
+	{name="Idris Hayward", email="id.hayward@caegeidwad.dev"}
 ]
 license = { file = "LICENSE" }
 classifiers = [
@@ -15,7 +15,8 @@ classifiers = [
 readme = "README.md"
 keywords = ["SensEURCity"]
 dependencies = [
-	"pandas"
+    "pandas>=2.3.2",
+    "sqlalchemy>=2.0.43",
 ]
 
 [build-system]
@@ -24,9 +25,6 @@ build-backend = "setuptools.build_meta"
 
 [project.scripts]
 senseurcity = "senseurcity.main:cli"
-
-[tool.flake8]
-exclude = "docs"
 
 [tool.pytest.ini_options]
 testpaths = [
@@ -38,7 +36,11 @@ markers = [
 
 addopts = [
 	"--html=reports/tests/index.html",
-	"--self-contained-html"
+	"--self-contained-html",
+	"--cov-fail-under=99",
+	"--cov-report=html:reports/coverage",
+	"--cov-report=term-missing",
+	"--cov=senseurcity"
 ]
 
 [tool.mypy]
@@ -59,13 +61,13 @@ no_implicit_reexport = true
 legacy_tox_ini = """
 	[tox]
 	minversion = 4.0
-	envlist = py39, py311, flake8, mypy
+	envlist = py311, py313, ruff, mypy
 	isolated_build = true
 
 	[gh-actions]
 	python =
-		3.9: py39
-		3.11: py311, mypy, flake8
+		3.11: py311
+		3.13: py313, mypy, ruff
 
 	[testenv]
 	setenv =
@@ -75,10 +77,10 @@ legacy_tox_ini = """
 	commands =
 		pytest --basetemp={envtmpdir}
 
-	[testenv:flake8]
+	[testenv:ruff]
 	basepython = python3.11
 	deps = -r requirements.txt
-	commands = flake8 src tests
+	commands = ruff check src tests
 
 	[testenv:mypy]
 	basepython = python3.11
@@ -89,3 +91,30 @@ legacy_tox_ini = """
 [tool.pyright]
 venvPath = ""
 venv = ".venv"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "pytest-html>=4.1.1",
+    "ruff>=0.13.1",
+]
+postgresql = [
+    "psycopg>=3.2.10",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = [
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
+    "S101",  # use of "assert"
+    "S102",  # use of "exec"
+    "S106",  # possible hardcoded password.
+]
