@@ -45,8 +45,9 @@ class FactLCS(_Base):
     """Declarative mapping of LCS Measurements table.
 
     Models a table with the following columns:
-    - measurement_hash [string]: Hash of the timestamp, sensor name and \
-    measurement header
+    - measurement_hash [str]: Hash of the timestamp, sensor name and \
+    measurement header.
+    - point_hash [str] Hash of the timestamp and sensor name.
     - timestamp [datetime]: The time the measurement was made.
     - code [str]: The provided name of the sensor.
     - header [str]: The code of the field.
@@ -56,6 +57,7 @@ class FactLCS(_Base):
     __tablename__ = "fact_lcs"
 
     measurement_hash: Mapped[str] = mapped_column(primary_key=True, unique=True)
+    point_hash: Mapped[str] = mapped_column(nullable=False)
     timestamp: Mapped[datetime] = mapped_column(nullable=False)
     code: Mapped[str] = mapped_column(nullable=False)
     header: Mapped[str] = mapped_column(nullable=False)
@@ -67,6 +69,11 @@ class FactLCS(_Base):
             "timestamp",
             "code",
             "header",
+            unique=True
+        ),
+        Index(
+            "ix_lcs_point_hash",
+            "point_hash",
             unique=True
         ),
         ForeignKeyConstraint(
@@ -84,22 +91,48 @@ class DimLCSFlags(_Base):
     """Declarative mapping of LCS Measurement Flags table.
 
     Models a table with the following columns:
-    - measurement_hash [str]: Hash of the timestamp, sensor name and \
-    measurement header
+    - id [int]: Autoincrementing row number.
+    - point_hash [str]: Hash of the timestamp and sensor name.
     - flag [str]: The code of the flag.
     - value [str]: The value of the flag.
     """
 
     __tablename__ = "dim_lcs_flags"
 
-    measurement_hash: Mapped[str] = mapped_column(primary_key=True, unique=True)
+    id: Mapped[int] = mapped_column(primary_key=True, unique=True)
+    point_hash: Mapped[str] = mapped_column(nullable=False)
     flag: Mapped[str] = mapped_column(nullable=False)
     value: Mapped[str] = mapped_column(nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["measurement_hash"],
-            ["fact_lcs.measurement_hash"],
+            ["point_hash"],
+            ["fact_lcs.point_hash"],
+        ),
+    )
+
+
+class DimLCSColocation(_Base):
+    """Declarative mapping of LCS Co-Location table.
+
+    Models a table with the following columns:
+    - point_hash [str]: Hash of the timestamp and sensor name
+    - location_id [str]: Where the sensor was co-located
+    """
+
+    __tablename__ = "dim_lcs_colocation"
+
+    point_hash: Mapped[str] = mapped_column(primary_key=True, unique=True)
+    location_id: Mapped[str]
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["point_hash"],
+            ["fact_lcs.point_hash"],
+        ),
+        ForeignKeyConstraint(
+            ["location_id"],
+            ["dim_ref.location_id"],
         ),
     )
 
@@ -108,8 +141,9 @@ class DimRef(_Base):
     """Declarative mapping of dimension table representing reference sites.
 
     Models a table with the following columns:
-    - id [int]: Row id, autoincrementing. Not set manually.
-    - location_id [str]: Name of reference site.
+    - location_id [str]: Site ID.
+    - name [str]: Name to use for reference site
+    - short_name [str]: Shortened name for reference site
     - city [str]: The city the reference site is in.
     - latitude_dd [float]: Location (latitude).
     - longitude_dd [float]: Location (longitude).
@@ -180,7 +214,7 @@ class FactRef(_Base):
     """Declarative mapping of Ref Measurements table.
 
     Models a table with the following columns:
-    - measurement_hash [string]: Hash of the timestamp, sensor name and \
+    - measurement_hash [str]: Hash of the timestamp, sensor name and \
     measurement header
     - timestamp [datetime]: The time the measurement was made.
     - name [str]: The name of the reference monitor.
