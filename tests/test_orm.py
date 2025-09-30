@@ -305,9 +305,31 @@ def test_dim_device_good(sqlite_connection):
             "short_name": "A3",
             "reference": False,
             "other": None
+        },
+        {
+            "code": "ANT_R000",
+            "dataset": "test",
+            "name": "Antwerp Ref 1",
+            "short_name": "AR1",
+            "reference": True,
+            "other": {"key": "value"}
+        },
+        {
+            "code": "ANT_R001",
+            "dataset": "test",
+            "name": "Antwerp Ref 2",
+            "short_name": "AR2",
+            "reference": True,
+            "other": None
         }
     ]
-    expected_pks = (('ANT_123456',), ('ANT_123567',), ('ANT_131245',))
+    expected_pks = (
+        ('ANT_123456',),
+        ('ANT_123567',),
+        ('ANT_131245',),
+        ('ANT_R000',),
+        ('ANT_R001',)
+    )
 
     insert_statement = insert(orm.DimDevice)
     with sqlite_connection.connect() as conn:
@@ -361,7 +383,10 @@ def test_dim_device_good(sqlite_connection):
 def test_dim_lcs_dupe(sqlite_connection, dupe_data):
     insert_statement = insert(orm.DimDevice)
     with sqlite_connection.connect() as conn:
-        with pytest.raises(sqlexc.IntegrityError):
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"UNIQUE constraint failed"
+        ):
             _ = conn.execute(
                 insert_statement,
                 dupe_data
@@ -382,7 +407,10 @@ def test_dim_lcs_null(sqlite_connection, col_to_null):
 
     insert_statement = insert(orm.DimDevice)
     with sqlite_connection.connect() as conn:
-        with pytest.raises(sqlexc.IntegrityError):
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"NOT NULL constraint failed"
+        ):
             _ = conn.execute(
                 insert_statement,
                 raw_data
@@ -437,7 +465,10 @@ def test_dim_header_dupe(sqlite_connection):
     }
     insert_statement = insert(orm.DimHeader)
     with sqlite_connection.connect() as conn:
-        with pytest.raises(sqlexc.IntegrityError):
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"UNIQUE constraint failed"
+        ):
             _ = conn.execute(
                 insert_statement,
                 dupe_data
@@ -466,7 +497,10 @@ def test_dim_header_null(sqlite_connection, col_to_null):
 
     insert_statement = insert(orm.DimHeader)
     with sqlite_connection.connect() as conn:
-        with pytest.raises(sqlexc.IntegrityError):
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"NOT NULL constraint failed"
+        ):
             _ = conn.execute(
                 insert_statement,
                 raw_data
@@ -528,7 +562,10 @@ def test_fact_measurement_dupe(sqlite_connection):
     }
     insert_statement = insert(orm.FactMeasurement)
     with sqlite_connection.connect() as conn:
-        with pytest.raises(sqlexc.IntegrityError):
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"UNIQUE constraint failed"
+        ):
             _ = conn.execute(
                 insert_statement,
                 dupe_data
@@ -558,7 +595,10 @@ def test_fact_measurement_bad_foreign_key(sqlite_connection, bad_key):
 
     insert_statement = insert(orm.FactMeasurement)
     with sqlite_connection.connect() as conn:
-        with pytest.raises(sqlexc.IntegrityError):
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"FOREIGN KEY constraint failed"
+        ):
             _ = conn.execute(
                 insert_statement,
                 raw_data
@@ -592,7 +632,10 @@ def test_fact_measurement_null(sqlite_connection, col_to_null):
 
     insert_statement = insert(orm.FactMeasurement)
     with sqlite_connection.connect() as conn:
-        with pytest.raises(sqlexc.IntegrityError):
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"NOT NULL constraint failed"
+        ):
             _ = conn.execute(
                 insert_statement,
                 raw_data
@@ -652,7 +695,10 @@ def test_dim_flag_bad_foreign_key(sqlite_connection, bad_key):
 
     insert_statement = insert(orm.DimFlag)
     with sqlite_connection.connect() as conn:
-        with pytest.raises(sqlexc.IntegrityError):
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"FOREIGN KEY constraint failed"
+        ):
             _ = conn.execute(
                 insert_statement,
                 raw_data
@@ -680,7 +726,10 @@ def test_dim_lcs_flags_null(sqlite_connection, col_to_null):
 
     insert_statement = insert(orm.DimFlag)
     with sqlite_connection.connect() as conn:
-        with pytest.raises(sqlexc.IntegrityError):
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"NOT NULL constraint failed"
+        ):
             _ = conn.execute(
                 insert_statement,
                 raw_data
