@@ -5,7 +5,7 @@ Configure the ORMs for the database.
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ForeignKeyConstraint, Index
+from sqlalchemy import ForeignKeyConstraint, Index, MetaData
 from sqlalchemy.types import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -14,7 +14,7 @@ class _Base(DeclarativeBase):
     type_annotation_map = {
         dict[str, Any]: JSON
     }
-    pass
+    metadata = MetaData(schema="measurement")
 
 
 class DimDevice(_Base):
@@ -50,7 +50,7 @@ class DimHeader(_Base):
     header: Mapped[str] = mapped_column(primary_key=True, unique=True)
     parameter: Mapped[str] = mapped_column(nullable=False)
     unit: Mapped[str] = mapped_column(nullable=False)
-    other: Mapped[dict[str, Any]]
+    other: Mapped[dict[str, Any]] = mapped_column(nullable=True)
 
 
 class FactMeasurement(_Base):

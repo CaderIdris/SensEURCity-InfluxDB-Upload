@@ -1,4 +1,4 @@
-"""Tests the orm.py module.
+"""Tests the orm.py module with a SQLite3 DB.
 
 Tests
 -----
@@ -48,20 +48,6 @@ def sqlite_connection(db_path):
     db_engine = engine.get_engine(f"sqlite+pysqlite:///{db_path}")
     orm._Base.metadata.create_all(db_engine)
     return db_engine
-
-
-@pytest.fixture
-def sql_types():
-    return {
-        "SQLite": {
-            "string": "VARCHAR",
-            "int": "INTEGER",
-            "float": "FLOAT",
-            "datetime": "DATETIME",
-            "boolean": "BOOLEAN",
-            "json": "JSON"
-        }
-    }
 
 
 def get_table_cols(cursor, expected_cols, table_name):
@@ -184,7 +170,7 @@ def test_dim_header_schema(db_path, sql_types):
         "header": (sql_types["SQLite"]["string"], 1, None, 1, 0),
         "parameter": (sql_types["SQLite"]["string"], 1, None, 0, 0),
         "unit": (sql_types["SQLite"]["string"], 1, None, 0, 0),
-        "other": (sql_types["SQLite"]["json"], 1, None, 0, 0),
+        "other": (sql_types["SQLite"]["json"], 0, None, 0, 0),
     }
     expected_indices = {
         "sqlite_autoindex_dim_header_1": (1, "pk", 0)
