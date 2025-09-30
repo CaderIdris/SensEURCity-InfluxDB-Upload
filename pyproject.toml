@@ -101,9 +101,6 @@ dev = [
     "pytest-html>=4.1.1",
     "ruff>=0.13.1",
 ]
-postgresql = [
-    "psycopg>=3.2.10",
-]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*.py" = [
