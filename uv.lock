@@ -727,11 +727,13 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
-    { name = "psycopg", extra = ["binary"] },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-html" },
     { name = "ruff" },
+]
+dev-postgres = [
+    { name = "psycopg", extra = ["binary"] },
     { name = "testcontainers" },
 ]
 postgres = [
@@ -747,11 +749,13 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.18.2" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pytest", specifier = ">=8.4.2" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "pytest-html", specifier = ">=4.1.1" },
     { name = "ruff", specifier = ">=0.13.1" },
+]
+dev-postgres = [
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "testcontainers", extras = ["postgres"], specifier = ">=4.13.1" },
 ]
 postgres = [{ name = "psycopg", specifier = ">=3.2.10" }]

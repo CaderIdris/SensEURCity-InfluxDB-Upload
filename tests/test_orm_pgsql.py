@@ -29,15 +29,21 @@ Tests
 """
 import datetime as dt
 
-import psycopg
 import pytest
 from sqlalchemy import insert
 import sqlalchemy.exc as sqlexc
-from testcontainers.postgres import PostgresContainer
 
 from senseurcity import orm
 from senseurcity import engine
 
+try:
+    import psycopg
+    from testcontainers.postgres import PostgresContainer
+except ImportError:
+    pytest.skip(
+        "TestContainers not set up, please use the dev-postgres group",
+        allow_module_level=True
+    )
 
 postgres = PostgresContainer("postgres:18-alpine", driver="psycopg")
 
@@ -316,460 +322,460 @@ def test_fact_measurement_schema(db_url, sql_types):
             print(f"{test}: {result}")
     assert all(tests.values())
 
-#
-# @pytest.mark.orm
-# def test_dim_device_good(sqlite_connection):
-#     tests = {}
-#     good_data = [
-#         {
-#             "code": "ANT_123456",
-#             "dataset": "test",
-#             "name": "Antwerp 1",
-#             "short_name": "A1",
-#             "reference": False,
-#             "other": {"key": "value"}
-#         },
-#         {
-#             "code": "ANT_123567",
-#             "dataset": "test",
-#             "name": "Antwerp 2",
-#             "short_name": "A2",
-#             "reference": False,
-#             "other": None
-#         },
-#         {
-#             "code": "ANT_131245",
-#             "dataset": "test",
-#             "name": "Antwerp 3",
-#             "short_name": "A3",
-#             "reference": False,
-#             "other": None
-#         },
-#         {
-#             "code": "ANT_R000",
-#             "dataset": "test",
-#             "name": "Antwerp Ref 1",
-#             "short_name": "AR1",
-#             "reference": True,
-#             "other": {"key": "value"}
-#         },
-#         {
-#             "code": "ANT_R001",
-#             "dataset": "test",
-#             "name": "Antwerp Ref 2",
-#             "short_name": "AR2",
-#             "reference": True,
-#             "other": None
-#         }
-#     ]
-#     expected_pks = (
-#         ('ANT_123456',),
-#         ('ANT_123567',),
-#         ('ANT_131245',),
-#         ('ANT_R000',),
-#         ('ANT_R001',)
-#     )
-#
-#     insert_statement = insert(orm.DimDevice)
-#     with sqlite_connection.connect() as conn:
-#         result = conn.execute(
-#             insert_statement,
-#             good_data
-#         )
-#         pks = tuple(result.inserted_primary_key_rows)
-#         conn.commit()
-#     tests["Rows inserted"] = pks == expected_pks
-#     assert all(tests.values())
-#
-#
-# @pytest.mark.orm
-# @pytest.mark.parametrize(
-#     "dupe_data", [
-#             {
-#                 "code": "ANT_123456",
-#                 "name": "Antwerp 1",
-#                 "short_name": "A1",
-#                 "dataset": "test",
-#                 "reference": False,
-#                 "other": None
-#             },
-#             {
-#                 "code": "ANT_123456",
-#                 "name": "Antwerp 4",
-#                 "short_name": "A4",
-#                 "dataset": "test",
-#                 "reference": False,
-#                 "other": None
-#             },
-#             {
-#                 "code": "ANT_123457",
-#                 "name": "Antwerp 1",
-#                 "short_name": "A4",
-#                 "dataset": "test",
-#                 "reference": False,
-#                 "other": None
-#             },
-#             {
-#                 "code": "ANT_123457",
-#                 "name": "Antwerp 4",
-#                 "short_name": "A1",
-#                 "dataset": "test",
-#                 "reference": False,
-#                 "other": None
-#             },
-#     ]
-# )
-# def test_dim_lcs_dupe(sqlite_connection, dupe_data):
-#     insert_statement = insert(orm.DimDevice)
-#     with sqlite_connection.connect() as conn:
-#         with pytest.raises(
-#             sqlexc.IntegrityError,
-#             match=r"UNIQUE constraint failed"
-#         ):
-#             _ = conn.execute(
-#                 insert_statement,
-#                 dupe_data
-#             )
-#
-#
-# @pytest.mark.orm
-# @pytest.mark.parametrize(
-#     "col_to_null", ["code", "name", "short_name"]
-# )
-# def test_dim_lcs_null(sqlite_connection, col_to_null):
-#     raw_data: dict[str, str | dt.datetime | int | float | None] = {
-#         "code": "ANT_123457",
-#         "name": "Antwerp 4",
-#         "short_name": "A4"
-#     }
-#     raw_data[col_to_null] = None
-#
-#     insert_statement = insert(orm.DimDevice)
-#     with sqlite_connection.connect() as conn:
-#         with pytest.raises(
-#             sqlexc.IntegrityError,
-#             match=r"NOT NULL constraint failed"
-#         ):
-#             _ = conn.execute(
-#                 insert_statement,
-#                 raw_data
-#             )
-#
-#
-# @pytest.mark.orm
-# def test_dim_header_good(sqlite_connection):
-#     tests = {}
-#     good_data = [
-#         {
-#             "header": "ox_test",
-#             "parameter": "ox",
-#             "unit": "nA",
-#             "other": None
-#         },
-#         {
-#             "header": "no_test",
-#             "parameter": "no",
-#             "unit": "nA",
-#             "other": {"key": "value"}
-#         },
-#         {
-#             "header": "opc_test",
-#             "type": "OPC",
-#             "parameter": "pm2.5",
-#             "unit": "µg/m³",
-#             "other": None
-#         }
-#     ]
-#     expected_pks = (('ox_test',), ('no_test',), ('opc_test',))
-#
-#     insert_statement = insert(orm.DimHeader)
-#     with sqlite_connection.connect() as conn:
-#         result = conn.execute(
-#             insert_statement,
-#             good_data
-#         )
-#         pks = tuple(result.inserted_primary_key_rows)
-#         conn.commit()
-#     tests["Rows inserted"] = pks == expected_pks
-#     assert all(tests.values())
-#
-#
-# @pytest.mark.orm
-# def test_dim_header_dupe(sqlite_connection):
-#     dupe_data = {
-#         "header": "ox_test",
-#         "parameter": "ox",
-#         "unit": "nA",
-#         "other": None
-#     }
-#     insert_statement = insert(orm.DimHeader)
-#     with sqlite_connection.connect() as conn:
-#         with pytest.raises(
-#             sqlexc.IntegrityError,
-#             match=r"UNIQUE constraint failed"
-#         ):
-#             _ = conn.execute(
-#                 insert_statement,
-#                 dupe_data
-#             )
-#
-#
-# @pytest.mark.orm
-# @pytest.mark.parametrize(
-#     "col_to_null", [
-#         "header",
-#         "parameter",
-#         "unit"
-#     ]
-# )
-# def test_dim_header_null(sqlite_connection, col_to_null):
-#     raw_data: dict[
-#         str,
-#         str | dt.datetime | int | float | dict[str, str] | None
-#     ] = {
-#         "header": "ox_test_2",
-#         "parameter": "ox",
-#         "unit": "nA",
-#         "other": {"key": "value"}
-#     }
-#     raw_data[col_to_null] = None
-#
-#     insert_statement = insert(orm.DimHeader)
-#     with sqlite_connection.connect() as conn:
-#         with pytest.raises(
-#             sqlexc.IntegrityError,
-#             match=r"NOT NULL constraint failed"
-#         ):
-#             _ = conn.execute(
-#                 insert_statement,
-#                 raw_data
-#             )
-#
-#
-# @pytest.mark.orm
-# def test_fact_measurement_good(sqlite_connection):
-#     tests = {}
-#     good_data = [
-#         {
-#             "measurement_hash": "test1",
-#             "point_hash": "othertest1",
-#             "timestamp": dt.datetime(2020, 1, 1),
-#             "code": "ANT_123456",
-#             "header": "ox_test",
-#             "value": 0.1
-#         },
-#         {
-#             "measurement_hash": "test2",
-#             "point_hash": "othertest2",
-#             "timestamp": dt.datetime(2020, 1, 2),
-#             "code": "ANT_131245",
-#             "header": "no_test",
-#             "value": 0.2
-#         },
-#         {
-#             "measurement_hash": "test3",
-#             "point_hash": "othertest3",
-#             "timestamp": dt.datetime(2020, 1, 3),
-#             "code": "ANT_123567",
-#             "header": "opc_test",
-#             "value": 0.3
-#         },
-#     ]
-#     expected_pks = (('test1',), ('test2',), ('test3',))
-#
-#     insert_statement = insert(orm.FactMeasurement)
-#     with sqlite_connection.connect() as conn:
-#         result = conn.execute(
-#             insert_statement,
-#             good_data
-#         )
-#         pks = tuple(result.inserted_primary_key_rows)
-#         conn.commit()
-#     tests["Rows inserted"] = pks == expected_pks
-#     assert all(tests.values())
-#
-#
-# @pytest.mark.orm
-# def test_fact_measurement_dupe(sqlite_connection):
-#     dupe_data = {
-#             "measurement_hash": "test1",
-#             "point_hash": "othertest6",
-#             "timestamp": dt.datetime(2020, 1, 1),
-#             "code": "ANT_123456",
-#             "header": "ox_test",
-#             "value": 0.1
-#     }
-#     insert_statement = insert(orm.FactMeasurement)
-#     with sqlite_connection.connect() as conn:
-#         with pytest.raises(
-#             sqlexc.IntegrityError,
-#             match=r"UNIQUE constraint failed"
-#         ):
-#             _ = conn.execute(
-#                 insert_statement,
-#                 dupe_data
-#             )
-#
-#
-# @pytest.mark.orm
-# @pytest.mark.parametrize(
-#     "bad_key", [
-#         "code",
-#         "header"
-#     ]
-# )
-# def test_fact_measurement_bad_foreign_key(sqlite_connection, bad_key):
-#     raw_data: dict[
-#         str,
-#         str | dt.datetime | int | float | dict[str, str] | None
-#     ] = {
-#             "measurement_hash": "test4",
-#             "point_hash": "othertest4",
-#             "timestamp": dt.datetime(2020, 1, 3),
-#             "code": "ANT_123567",
-#             "header": "opc_test",
-#             "value": 0.3
-#     }
-#     raw_data[bad_key] = "BADKEY"
-#
-#     insert_statement = insert(orm.FactMeasurement)
-#     with sqlite_connection.connect() as conn:
-#         with pytest.raises(
-#             sqlexc.IntegrityError,
-#             match=r"FOREIGN KEY constraint failed"
-#         ):
-#             _ = conn.execute(
-#                 insert_statement,
-#                 raw_data
-#             )
-#
-#
-# @pytest.mark.orm
-# @pytest.mark.parametrize(
-#     "col_to_null", [
-#         "measurement_hash",
-#         "point_hash",
-#         "timestamp",
-#         "code",
-#         "header",
-#         "value"
-#     ]
-# )
-# def test_fact_measurement_null(sqlite_connection, col_to_null):
-#     raw_data: dict[
-#         str,
-#         str | dt.datetime | int | float | dict[str, str] | None
-#     ] = {
-#             "measurement_hash": "test6",
-#             "point_hash": "othertest6",
-#             "timestamp": dt.datetime(2020, 1, 1),
-#             "code": "ANT_123456",
-#             "header": "ox_test",
-#             "value": 0.1
-#     }
-#     raw_data[col_to_null] = None
-#
-#     insert_statement = insert(orm.FactMeasurement)
-#     with sqlite_connection.connect() as conn:
-#         with pytest.raises(
-#             sqlexc.IntegrityError,
-#             match=r"NOT NULL constraint failed"
-#         ):
-#             _ = conn.execute(
-#                 insert_statement,
-#                 raw_data
-#             )
-#
-#
-# @pytest.mark.orm
-# def test_dim_flag_good(sqlite_connection):
-#     tests = {}
-#     good_data = [
-#         {
-#             "point_hash": "othertest1",
-#             "flag": "ox_test",
-#             "value": "a"
-#         },
-#         {
-#             "point_hash": "othertest2",
-#             "flag": "no_test",
-#             "value": "b"
-#         },
-#         {
-#             "point_hash": "othertest3",
-#             "flag": "opc_test",
-#             "value": "c"
-#         },
-#     ]
-#     expected_pks = ((None,), (None,), (None,))
-#
-#     insert_statement = insert(orm.DimFlag)
-#     with sqlite_connection.connect() as conn:
-#         result = conn.execute(
-#             insert_statement,
-#             good_data
-#         )
-#         pks = tuple(result.inserted_primary_key_rows)
-#         conn.commit()
-#     tests["Rows inserted"] = pks == expected_pks
-#     assert all(tests.values())
-#
-#
-# @pytest.mark.orm
-# @pytest.mark.parametrize(
-#     "bad_key", [
-#         "point_hash"
-#     ]
-# )
-# def test_dim_flag_bad_foreign_key(sqlite_connection, bad_key):
-#     raw_data: dict[
-#         str,
-#         str | dt.datetime | int | float | dict[str, str] | None
-#     ] = {
-#         "point_hash": "othertest4",
-#         "flag": "ox_test",
-#         "value": "a"
-#     }
-#     raw_data[bad_key] = "BADKEY"
-#
-#     insert_statement = insert(orm.DimFlag)
-#     with sqlite_connection.connect() as conn:
-#         with pytest.raises(
-#             sqlexc.IntegrityError,
-#             match=r"FOREIGN KEY constraint failed"
-#         ):
-#             _ = conn.execute(
-#                 insert_statement,
-#                 raw_data
-#             )
-#
-#
-# @pytest.mark.orm
-# @pytest.mark.parametrize(
-#     "col_to_null", [
-#         "point_hash",
-#         "flag",
-#         "value"
-#     ]
-# )
-# def test_dim_lcs_flags_null(sqlite_connection, col_to_null):
-#     raw_data: dict[
-#         str,
-#         str | dt.datetime | int | float | dict[str, str] | None
-#     ] = {
-#         "point_hash": "othertest5",
-#         "flag": "ox_test",
-#         "value": "a"
-#     }
-#     raw_data[col_to_null] = None
-#
-#     insert_statement = insert(orm.DimFlag)
-#     with sqlite_connection.connect() as conn:
-#         with pytest.raises(
-#             sqlexc.IntegrityError,
-#             match=r"NOT NULL constraint failed"
-#         ):
-#             _ = conn.execute(
-#                 insert_statement,
-#                 raw_data
-#             )
+
+@pytest.mark.orm
+def test_dim_device_good(pgsql_connection):
+    tests = {}
+    good_data = [
+        {
+            "code": "ANT_123456",
+            "dataset": "test",
+            "name": "Antwerp 1",
+            "short_name": "A1",
+            "reference": False,
+            "other": {"key": "value"}
+        },
+        {
+            "code": "ANT_123567",
+            "dataset": "test",
+            "name": "Antwerp 2",
+            "short_name": "A2",
+            "reference": False,
+            "other": None
+        },
+        {
+            "code": "ANT_131245",
+            "dataset": "test",
+            "name": "Antwerp 3",
+            "short_name": "A3",
+            "reference": False,
+            "other": None
+        },
+        {
+            "code": "ANT_R000",
+            "dataset": "test",
+            "name": "Antwerp Ref 1",
+            "short_name": "AR1",
+            "reference": True,
+            "other": {"key": "value"}
+        },
+        {
+            "code": "ANT_R001",
+            "dataset": "test",
+            "name": "Antwerp Ref 2",
+            "short_name": "AR2",
+            "reference": True,
+            "other": None
+        }
+    ]
+    expected_pks = (
+        ('ANT_123456',),
+        ('ANT_123567',),
+        ('ANT_131245',),
+        ('ANT_R000',),
+        ('ANT_R001',)
+    )
+
+    insert_statement = insert(orm.DimDevice)
+    with pgsql_connection.connect() as conn:
+        result = conn.execute(
+            insert_statement,
+            good_data
+        )
+        pks = tuple(result.inserted_primary_key_rows)
+        conn.commit()
+    tests["Rows inserted"] = pks == expected_pks
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.parametrize(
+    "dupe_data", [
+            {
+                "code": "ANT_123456",
+                "name": "Antwerp 1",
+                "short_name": "A1",
+                "dataset": "test",
+                "reference": False,
+                "other": None
+            },
+            {
+                "code": "ANT_123456",
+                "name": "Antwerp 4",
+                "short_name": "A4",
+                "dataset": "test",
+                "reference": False,
+                "other": None
+            },
+            {
+                "code": "ANT_123457",
+                "name": "Antwerp 1",
+                "short_name": "A4",
+                "dataset": "test",
+                "reference": False,
+                "other": None
+            },
+            {
+                "code": "ANT_123457",
+                "name": "Antwerp 4",
+                "short_name": "A1",
+                "dataset": "test",
+                "reference": False,
+                "other": None
+            },
+    ]
+)
+def test_dim_lcs_dupe(pgsql_connection, dupe_data):
+    insert_statement = insert(orm.DimDevice)
+    with pgsql_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates unique constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                dupe_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.parametrize(
+    "col_to_null", ["code", "name", "short_name"]
+)
+def test_dim_lcs_null(pgsql_connection, col_to_null):
+    raw_data: dict[str, str | dt.datetime | int | float | None] = {
+        "code": "ANT_123457",
+        "name": "Antwerp 4",
+        "short_name": "A4"
+    }
+    raw_data[col_to_null] = None
+
+    insert_statement = insert(orm.DimDevice)
+    with pgsql_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates not-null constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+
+@pytest.mark.orm
+def test_dim_header_good(pgsql_connection):
+    tests = {}
+    good_data = [
+        {
+            "header": "ox_test",
+            "parameter": "ox",
+            "unit": "nA",
+            "other": None
+        },
+        {
+            "header": "no_test",
+            "parameter": "no",
+            "unit": "nA",
+            "other": {"key": "value"}
+        },
+        {
+            "header": "opc_test",
+            "type": "OPC",
+            "parameter": "pm2.5",
+            "unit": "µg/m³",
+            "other": None
+        }
+    ]
+    expected_pks = (('ox_test',), ('no_test',), ('opc_test',))
+
+    insert_statement = insert(orm.DimHeader)
+    with pgsql_connection.connect() as conn:
+        result = conn.execute(
+            insert_statement,
+            good_data
+        )
+        pks = tuple(result.inserted_primary_key_rows)
+        conn.commit()
+    tests["Rows inserted"] = pks == expected_pks
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+def test_dim_header_dupe(pgsql_connection):
+    dupe_data = {
+        "header": "ox_test",
+        "parameter": "ox",
+        "unit": "nA",
+        "other": None
+    }
+    insert_statement = insert(orm.DimHeader)
+    with pgsql_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates unique constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                dupe_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.parametrize(
+    "col_to_null", [
+        "header",
+        "parameter",
+        "unit"
+    ]
+)
+def test_dim_header_null(pgsql_connection, col_to_null):
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+        "header": "ox_test_2",
+        "parameter": "ox",
+        "unit": "nA",
+        "other": {"key": "value"}
+    }
+    raw_data[col_to_null] = None
+
+    insert_statement = insert(orm.DimHeader)
+    with pgsql_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates not-null constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+
+@pytest.mark.orm
+def test_fact_measurement_good(pgsql_connection):
+    tests = {}
+    good_data = [
+        {
+            "measurement_hash": "test1",
+            "point_hash": "othertest1",
+            "timestamp": dt.datetime(2020, 1, 1),
+            "code": "ANT_123456",
+            "header": "ox_test",
+            "value": 0.1
+        },
+        {
+            "measurement_hash": "test2",
+            "point_hash": "othertest2",
+            "timestamp": dt.datetime(2020, 1, 2),
+            "code": "ANT_131245",
+            "header": "no_test",
+            "value": 0.2
+        },
+        {
+            "measurement_hash": "test3",
+            "point_hash": "othertest3",
+            "timestamp": dt.datetime(2020, 1, 3),
+            "code": "ANT_123567",
+            "header": "opc_test",
+            "value": 0.3
+        },
+    ]
+    expected_pks = (('test1',), ('test2',), ('test3',))
+
+    insert_statement = insert(orm.FactMeasurement)
+    with pgsql_connection.connect() as conn:
+        result = conn.execute(
+            insert_statement,
+            good_data
+        )
+        pks = tuple(result.inserted_primary_key_rows)
+        conn.commit()
+    tests["Rows inserted"] = pks == expected_pks
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+def test_fact_measurement_dupe(pgsql_connection):
+    dupe_data = {
+            "measurement_hash": "test1",
+            "point_hash": "othertest6",
+            "timestamp": dt.datetime(2020, 1, 1),
+            "code": "ANT_123456",
+            "header": "ox_test",
+            "value": 0.1
+    }
+    insert_statement = insert(orm.FactMeasurement)
+    with pgsql_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates unique constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                dupe_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.parametrize(
+    "bad_key", [
+        "code",
+        "header"
+    ]
+)
+def test_fact_measurement_bad_foreign_key(pgsql_connection, bad_key):
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+            "measurement_hash": "test4",
+            "point_hash": "othertest4",
+            "timestamp": dt.datetime(2020, 1, 3),
+            "code": "ANT_123567",
+            "header": "opc_test",
+            "value": 0.3
+    }
+    raw_data[bad_key] = "BADKEY"
+
+    insert_statement = insert(orm.FactMeasurement)
+    with pgsql_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates foreign key constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.parametrize(
+    "col_to_null", [
+        "measurement_hash",
+        "point_hash",
+        "timestamp",
+        "code",
+        "header",
+        "value"
+    ]
+)
+def test_fact_measurement_null(pgsql_connection, col_to_null):
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+            "measurement_hash": "test6",
+            "point_hash": "othertest6",
+            "timestamp": dt.datetime(2020, 1, 1),
+            "code": "ANT_123456",
+            "header": "ox_test",
+            "value": 0.1
+    }
+    raw_data[col_to_null] = None
+
+    insert_statement = insert(orm.FactMeasurement)
+    with pgsql_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates not-null constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+
+@pytest.mark.orm
+def test_dim_flag_good(pgsql_connection):
+    tests = {}
+    good_data = [
+        {
+            "point_hash": "othertest1",
+            "flag": "ox_test",
+            "value": "a"
+        },
+        {
+            "point_hash": "othertest2",
+            "flag": "no_test",
+            "value": "b"
+        },
+        {
+            "point_hash": "othertest3",
+            "flag": "opc_test",
+            "value": "c"
+        },
+    ]
+    expected_pks = ((None,), (None,), (None,))
+
+    insert_statement = insert(orm.DimFlag)
+    with pgsql_connection.connect() as conn:
+        result = conn.execute(
+            insert_statement,
+            good_data
+        )
+        pks = tuple(result.inserted_primary_key_rows)
+        conn.commit()
+    tests["Rows inserted"] = pks == expected_pks
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.parametrize(
+    "bad_key", [
+        "point_hash"
+    ]
+)
+def test_dim_flag_bad_foreign_key(pgsql_connection, bad_key):
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+        "point_hash": "othertest4",
+        "flag": "ox_test",
+        "value": "a"
+    }
+    raw_data[bad_key] = "BADKEY"
+
+    insert_statement = insert(orm.DimFlag)
+    with pgsql_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates foreign key constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.parametrize(
+    "col_to_null", [
+        "point_hash",
+        "flag",
+        "value"
+    ]
+)
+def test_dim_lcs_flags_null(pgsql_connection, col_to_null):
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+        "point_hash": "othertest5",
+        "flag": "ox_test",
+        "value": "a"
+    }
+    raw_data[col_to_null] = None
+
+    insert_statement = insert(orm.DimFlag)
+    with pgsql_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates not-null constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
