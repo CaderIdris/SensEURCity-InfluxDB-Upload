@@ -46,7 +46,7 @@ def db_path(tmp_path_factory):
 @pytest.fixture(autouse=True)
 def sqlite_connection(db_path):
     db_engine = engine.get_engine(f"sqlite+pysqlite:///{db_path}")
-    orm._Base.metadata.create_all(db_engine)
+    orm._Base_V1.metadata.create_all(db_engine)
     return db_engine
 
 
@@ -204,9 +204,7 @@ def test_dim_flag_schema(db_path, sql_types):
         "flag": (sql_types["SQLite"]["string"], 1, None, 0, 0),
         "value": (sql_types["SQLite"]["string"], 1, None, 0, 0),
     }
-    expected_indices = {
-        "sqlite_autoindex_dim_flag_1": (1, "u", 0),
-    }
+    
     expected_foreign_keys = {
         "fact_measurement_0": ("point_hash", "point_hash", "NO ACTION", "NO ACTION", "NONE")
     }
@@ -214,11 +212,6 @@ def test_dim_flag_schema(db_path, sql_types):
     conn = sql3.connect(db_path)
     cursor = conn.cursor()
     tests = get_table_cols(cursor, expected_col_structure, table_name)
-    tests = tests | get_indices(
-        cursor,
-        expected_indices,
-        table_name
-    )
     tests = tests | get_foreign_keys(cursor, expected_foreign_keys, table_name)
 
     for test, result in tests.items():

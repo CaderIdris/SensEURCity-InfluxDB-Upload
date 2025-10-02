@@ -1,6 +1,8 @@
 """SQLAlchemy configuration.
 
-Configure the ORMs for the database.
+Configure the schemas for the required tables and model all relationships
+between tables. Includes unique, foreign key and not null constraints
+to the tables to maintain data integrity.
 """
 from datetime import datetime
 from typing import Any
@@ -10,14 +12,14 @@ from sqlalchemy.types import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-class _Base(DeclarativeBase):
+class _Base_V1(DeclarativeBase):
     type_annotation_map = {
         dict[str, Any]: JSON
     }
     metadata = MetaData(schema="measurement")
 
 
-class DimDevice(_Base):
+class DimDevice(_Base_V1):
     """Declarative mapping of dimension table representing LCS.
 
     Schema name: **measurement**
@@ -44,7 +46,7 @@ class DimDevice(_Base):
     other: Mapped[dict[str, Any]] = mapped_column(nullable=True)
 
 
-class DimHeader(_Base):
+class DimHeader(_Base_V1):
     """Declarative mapping of measurement headers dimension table.
 
     Schema name: **measurement**
@@ -67,7 +69,7 @@ class DimHeader(_Base):
     other: Mapped[dict[str, Any]] = mapped_column(nullable=True)
 
 
-class FactMeasurement(_Base):
+class FactMeasurement(_Base_V1):
     """Declarative mapping of measurement fact table.
 
     Schema name: **measurement**
@@ -131,7 +133,7 @@ class FactMeasurement(_Base):
     )
 
 
-class DimFlag(_Base):
+class DimFlag(_Base_V1):
     """Declarative mapping of measurement flags dimension table.
 
     Schema name: **measurement**

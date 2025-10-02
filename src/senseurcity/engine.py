@@ -8,8 +8,7 @@ def get_engine(
     schema_name: str = "measurement",
 ) -> Engine:
     """"""
-    conn_args = {}
-    engine = create_engine(db_url, connect_args=conn_args)
+    engine = create_engine(db_url)
     if db_url[:6] == "sqlite":
         engine = engine.execution_options(
             schema_translate_map = {
@@ -22,6 +21,12 @@ def get_engine(
             lambda e, _: e.execute('pragma foreign_keys=on')
         )
     elif db_url[:10] == "postgresql":
+        if schema_name != "measurement":
+            engine = engine.execution_options(
+                schema_translate_map = {
+                    "measurement": schema_name
+                }
+            )
         with engine.connect() as conn:
             conn.execute(schema.CreateSchema(schema_name))
             conn.commit()

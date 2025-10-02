@@ -66,7 +66,7 @@ def db_url():
 @pytest.fixture(scope="module", autouse=True)
 def pgsql_connection(db_url):
     db_engine = engine.get_engine(db_url)
-    orm._Base.metadata.create_all(db_engine)
+    orm._Base_V1.metadata.create_all(db_engine)
     return db_engine
 
 
