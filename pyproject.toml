@@ -32,7 +32,10 @@ testpaths = [
 ]
 
 markers = [
-	"orm"
+	"orm",
+	"sqlite",
+	"postgres",
+	"base_v1"
 ]
 
 addopts = [

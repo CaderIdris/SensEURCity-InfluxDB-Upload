@@ -7,7 +7,7 @@ to the tables to maintain data integrity.
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ForeignKeyConstraint, Index, MetaData
+from sqlalchemy import ForeignKeyConstraint, MetaData
 from sqlalchemy.types import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -21,6 +21,9 @@ class _Base_V1(DeclarativeBase):
 
 class DimDevice(_Base_V1):
     """Declarative mapping of dimension table representing LCS.
+
+    This table is used to store information on all devices whose measurements
+    are recorded within the database.
 
     Schema name: **measurement**
 
@@ -49,6 +52,11 @@ class DimDevice(_Base_V1):
 class DimHeader(_Base_V1):
     """Declarative mapping of measurement headers dimension table.
 
+    This table is used to store information on all measurement headers that
+    represent measurements made within the database. Headers (e.g. ox_a431)
+    represent a measurement made by an ox_a431 sensor. The parameter it 
+    measures and the unit of measurement are stored with it.
+
     Schema name: **measurement**
 
     Table name: **dim_header**
@@ -70,7 +78,11 @@ class DimHeader(_Base_V1):
 
 
 class FactMeasurement(_Base_V1):
-    """Declarative mapping of measurement fact table.
+    """Declarative mapping of measurement point fact table.
+
+    This table is used to log when a measurement is made by a single device at
+    a single point in time. The measurements made and any flags associated with
+    them are separated into **fact_value** and **fact_flag** respectively.
 
     Schema name: **measurement**
 
@@ -78,67 +90,31 @@ class FactMeasurement(_Base_V1):
 
     Schema
     ------
-    - *measurement_hash* [str, pk]: Hash of the *timestamp*, *code* and \
-    *header* columns.
-    - *point_hash* [str, not null] Hash of the *timestamp* and *code* columns.
+    - *point_hash* [str, pk] Hash of the *timestamp* and *code* columns.
     - *timestamp* [datetime, not null]: The time the measurement was made.
     - *code* [str, not null]: The code representing the measurement device.
-    - *header* [str, not null]: The code of the field.
-    - *value* [float, not null]: The value of the measurement.
-
-    Indexes
-    -------
-    - ix_measurement: Unique index encompassing the *timestamp*, *code* and \
-    *header* of a measurement, representing a single measurement at a single \
-    point in time
-    - ix_point_hash: A hashed version of ix_measurement used to join \
-    **dim_flag**
-
-    Foreign Keys
-    ------------
-    - code: References the *code* index column in **dim_device**
-    - header: References the *header* index column in **dim_header**
     """
 
     __tablename__ = "fact_measurement"
 
-    measurement_hash: Mapped[str] = mapped_column(primary_key=True)
-    point_hash: Mapped[str] = mapped_column(nullable=False)
+    point_hash: Mapped[str] = mapped_column(primary_key=True)
     timestamp: Mapped[datetime] = mapped_column(nullable=False)
     code: Mapped[str] = mapped_column(nullable=False)
-    header: Mapped[str] = mapped_column(nullable=False)
-    value: Mapped[float] = mapped_column(nullable=False)
 
     __table_args__ = (
-        Index(
-            "ix_measurement",
-            "timestamp",
-            "code",
-            "header",
-            unique=True
-        ),
-        Index(
-            "ix_point_hash",
-            "point_hash",
-            unique=True
-        ),
         ForeignKeyConstraint(
             ["code"],
             ["dim_device.code"]
         ),
-        ForeignKeyConstraint(
-            ["header"],
-            ["dim_header.header"]
-        )
     )
 
 
-class DimFlag(_Base_V1):
-    """Declarative mapping of measurement flags dimension table.
+class FactValue(_Base_V1):
+    """Declarative mapping of measurement values fact table.
 
     Schema name: **measurement**
 
-    Table name: **dim_flag**
+    Table name: **fact_flag**
 
     Schema
     ------
@@ -149,12 +125,53 @@ class DimFlag(_Base_V1):
 
     Foreign Keys
     ------------
-    - point_hash: Reference the *point_hash* column in **fact_measurement** \
+    - point_hash: References the *point_hash* column in **fact_measurement** \
+        *N.B. This is a many-many relationship, one or both tables should be \
+        filtered prior to a join to reduce to a one-to-one or one-to-many.*
+    - header: References the *header* column in **dim_header**
+    """
+
+    __tablename__ = "fact_value"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    point_hash: Mapped[str] = mapped_column(nullable=False)
+    header: Mapped[str] = mapped_column(nullable=False)
+    value: Mapped[float] = mapped_column(nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["point_hash"],
+            ["fact_measurement.point_hash"]
+        ),
+        ForeignKeyConstraint(
+            ["header"],
+            ["dim_header.header"]
+        )
+    )
+
+
+class FactFlag(_Base_V1):
+    """Declarative mapping of measurement flags fact table.
+
+    Schema name: **measurement**
+
+    Table name: **fact_flag**
+
+    Schema
+    ------
+    - *id* [int, pk]: Autoincrementing row number.
+    - *point_hash* [str, not null]: Hash of the timestamp and sensor name.
+    - *flag* [str, not null]: The code of the flag.
+    - *value* [str, not null]: The value of the flag.
+
+    Foreign Keys
+    ------------
+    - point_hash: References the *point_hash* column in **fact_measurement** \
         *N.B. This is a many-many relationship, one or both tables should be \
         filtered prior to a join to reduce to a one-to-one or one-to-many.*
     """
 
-    __tablename__ = "dim_flag"
+    __tablename__ = "fact_flag"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     point_hash: Mapped[str] = mapped_column(nullable=False)

@@ -7,8 +7,9 @@ Tests
 - Are table schemas valid?
     - `dim_device`
     - `dim_header`
-    - `dim_flag`
     - `fact_measurement`
+    - `fact_value`
+    - `fact_flag`
 - `dim_device`
     - Does it accept valid measurements?
     - Is duplicate data rejected?
@@ -64,14 +65,14 @@ def db_url():
 
 
 @pytest.fixture(scope="module", autouse=True)
-def pgsql_connection(db_url):
+def postgres_connection(db_url):
     db_engine = engine.get_engine(db_url)
     orm._Base_V1.metadata.create_all(db_engine)
     return db_engine
 
 
 def get_table_cols(cursor, expected_cols, table_name):
-    tests = {}
+    tests: dict[str, bool] = {}
     cursor.execute(
         f"""
         SELECT
@@ -98,7 +99,7 @@ def get_table_cols(cursor, expected_cols, table_name):
 
 
 def get_foreign_keys(cursor, expected_keys, table_name):
-    tests = {}
+    tests: dict[str, bool] = {}
     cursor.execute(
         # Taken from https://stackoverflow.com/a/1152321
         f"""
@@ -133,7 +134,7 @@ def get_foreign_keys(cursor, expected_keys, table_name):
 
 
 def get_indices(cursor, expected_indices, table_name):
-    tests = {}
+    tests: dict[str, bool] = {}
     cursor.execute(
         f"""
         SELECT * 
@@ -156,14 +157,16 @@ def get_indices(cursor, expected_indices, table_name):
 
 
 @pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
 def test_create_tables(db_url):
-    print(db_url)
-    tests = {}
+    tests: dict[str, bool] = {}
     expected_tables = (
         "dim_device",
         "dim_header",
-        "dim_flag",
-        "fact_measurement"
+        "fact_measurement",
+        "fact_value",
+        "fact_flag"
     )
     with psycopg.connect(db_url.replace("+psycopg", "")) as conn:
         with conn.cursor() as cur:
@@ -175,19 +178,26 @@ def test_create_tables(db_url):
                 """
             )
             result = cur.fetchall()
+
     tables_in_db = [i[2] for i in result]
+
     for table in expected_tables:
-        tests[f"{table} is in db"] = table in tables_in_db
+        tests[f"{table} is in db"] = (table in tables_in_db)
+
     tests[f"{len(expected_tables)} tables in db"] = (
         len(expected_tables) == len(tables_in_db)
     )
-    for test, result in tests.items():
-        if not result:
-            print(f"{test}: {result}")
+
+    for test, outcome in tests.items():
+        if not outcome:
+            print(f"{test}: {outcome}")
+
     assert all(tests.values())
 
 
 @pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
 def test_dim_device_schema(db_url, sql_types):
     table_name = "dim_device"
     expected_col_structure = {
@@ -220,9 +230,11 @@ def test_dim_device_schema(db_url, sql_types):
         if not result:
             print(f"{test}: {result}")
     assert all(tests.values())
-#
-#
+
+
 @pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
 def test_dim_header_schema(db_url, sql_types):
     table_name = "dim_header"
     expected_col_structure = {
@@ -255,8 +267,78 @@ def test_dim_header_schema(db_url, sql_types):
 
 
 @pytest.mark.orm
-def test_dim_flag_schema(db_url, sql_types):
-    table_name = "dim_flag"
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_fact_measurement_schema(db_url, sql_types):
+    table_name = "fact_measurement"
+    expected_col_structure = {
+        "point_hash": ('NO', sql_types["PostgreSQL"]["string"], None),
+        "timestamp": ('NO', sql_types["PostgreSQL"]["datetime"], None),
+        "code": ('NO', sql_types["PostgreSQL"]["string"], None)
+    }
+    expected_foreign_keys = {
+        "fact_measurement_code_fkey": ('fact_measurement', 'code', 'dim_device', 'code'),
+    }
+    expected_indices = [
+        "fact_measurement_pkey"
+    ]
+
+    with psycopg.connect(db_url.replace("+psycopg", "")) as conn:
+        with conn.cursor() as cursor:
+            tests = get_table_cols(cursor, expected_col_structure, table_name)
+            tests = tests | get_foreign_keys(cursor, expected_foreign_keys, table_name)
+            tests = tests | get_indices(
+                cursor,
+                expected_indices,
+                table_name
+            )
+
+    for test, result in tests.items():
+        if not result:
+            print(f"{test}: {result}")
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_fact_value_schema(db_url, sql_types):
+    table_name = "fact_value"
+    expected_col_structure = {
+        "id": ('NO', sql_types["PostgreSQL"]["int"], None),
+        "point_hash": ('NO', sql_types["PostgreSQL"]["string"], None),
+        "header": ('NO', sql_types["PostgreSQL"]["string"], None),
+        "value": ('NO', sql_types["PostgreSQL"]["float"], None)
+    }
+    expected_indices = [
+        "dim_value_pkey"
+    ]
+    expected_foreign_keys = {
+        "fact_value_point_hash_fkey": ("fact_value", "point_hash", "fact_measurement", "point_hash"),
+        "fact_value_header_fkey": ("fact_value", "header", "dim_header", "header")
+    }
+
+    with psycopg.connect(db_url.replace("+psycopg", "")) as conn:
+        with conn.cursor() as cursor:
+            tests = get_table_cols(cursor, expected_col_structure, table_name)
+            tests = tests | get_indices(
+                cursor,
+                expected_indices,
+                table_name
+            )
+            tests = tests | get_foreign_keys(cursor, expected_foreign_keys, table_name)
+
+    for test, result in tests.items():
+        if not result:
+            print(f"{test}: {result}")
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_fact_flag_schema(db_url, sql_types):
+    table_name = "fact_flag"
     expected_col_structure = {
         "id": ('NO', sql_types["PostgreSQL"]["int"], None),
         "point_hash": ('NO', sql_types["PostgreSQL"]["string"], None),
@@ -267,7 +349,7 @@ def test_dim_flag_schema(db_url, sql_types):
         "dim_flag_pkey"
     ]
     expected_foreign_keys = {
-        "dim_flag_point_hash_fkey": ("dim_flag", "point_hash", "fact_measurement", "point_hash")
+        "fact_flag_point_hash_fkey": ("fact_flag", "point_hash", "fact_measurement", "point_hash")
     }
 
     with psycopg.connect(db_url.replace("+psycopg", "")) as conn:
@@ -287,45 +369,10 @@ def test_dim_flag_schema(db_url, sql_types):
 
 
 @pytest.mark.orm
-def test_fact_measurement_schema(db_url, sql_types):
-    table_name = "fact_measurement"
-    expected_col_structure = {
-        "measurement_hash": ('NO', sql_types["PostgreSQL"]["string"], None),
-        "point_hash": ('NO', sql_types["PostgreSQL"]["string"], None),
-        "timestamp": ('NO', sql_types["PostgreSQL"]["datetime"], None),
-        "code": ('NO', sql_types["PostgreSQL"]["string"], None),
-        "header": ('NO', sql_types["PostgreSQL"]["string"], None),
-        "value": ('NO', sql_types["PostgreSQL"]["float"], None),
-    }
-    expected_foreign_keys = {
-        "fact_measurement_code_fkey": ('fact_measurement', 'code', 'dim_device', 'code'),
-        "fact_measurement_header_fkey": ('fact_measurement', 'header', 'dim_header', 'header'),
-    }
-    expected_indices = [
-        "fact_measurement_pkey",
-        "ix_measurement",
-        "ix_point_hash"
-    ]
-
-    with psycopg.connect(db_url.replace("+psycopg", "")) as conn:
-        with conn.cursor() as cursor:
-            tests = get_table_cols(cursor, expected_col_structure, table_name)
-            tests = tests | get_foreign_keys(cursor, expected_foreign_keys, table_name)
-            tests = tests | get_indices(
-                cursor,
-                expected_indices,
-                table_name
-            )
-
-    for test, result in tests.items():
-        if not result:
-            print(f"{test}: {result}")
-    assert all(tests.values())
-
-
-@pytest.mark.orm
-def test_dim_device_good(pgsql_connection):
-    tests = {}
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_dim_device_good(postgres_connection):
+    tests: dict[str, bool] = {}
     good_data = [
         {
             "code": "ANT_123456",
@@ -377,7 +424,7 @@ def test_dim_device_good(pgsql_connection):
     )
 
     insert_statement = insert(orm.DimDevice)
-    with pgsql_connection.connect() as conn:
+    with postgres_connection.connect() as conn:
         result = conn.execute(
             insert_statement,
             good_data
@@ -389,6 +436,8 @@ def test_dim_device_good(pgsql_connection):
 
 
 @pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
 @pytest.mark.parametrize(
     "dupe_data", [
             {
@@ -425,9 +474,9 @@ def test_dim_device_good(pgsql_connection):
             },
     ]
 )
-def test_dim_lcs_dupe(pgsql_connection, dupe_data):
+def test_dim_lcs_dupe(postgres_connection, dupe_data):
     insert_statement = insert(orm.DimDevice)
-    with pgsql_connection.connect() as conn:
+    with postgres_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,
             match=r"violates unique constraint"
@@ -439,10 +488,12 @@ def test_dim_lcs_dupe(pgsql_connection, dupe_data):
 
 
 @pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
 @pytest.mark.parametrize(
     "col_to_null", ["code", "name", "short_name"]
 )
-def test_dim_lcs_null(pgsql_connection, col_to_null):
+def test_dim_lcs_null(postgres_connection, col_to_null):
     raw_data: dict[str, str | dt.datetime | int | float | None] = {
         "code": "ANT_123457",
         "name": "Antwerp 4",
@@ -451,7 +502,7 @@ def test_dim_lcs_null(pgsql_connection, col_to_null):
     raw_data[col_to_null] = None
 
     insert_statement = insert(orm.DimDevice)
-    with pgsql_connection.connect() as conn:
+    with postgres_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,
             match=r"violates not-null constraint"
@@ -463,8 +514,10 @@ def test_dim_lcs_null(pgsql_connection, col_to_null):
 
 
 @pytest.mark.orm
-def test_dim_header_good(pgsql_connection):
-    tests = {}
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_dim_header_good(postgres_connection):
+    tests: dict[str, bool] = {}
     good_data = [
         {
             "header": "ox_test",
@@ -489,7 +542,7 @@ def test_dim_header_good(pgsql_connection):
     expected_pks = (('ox_test',), ('no_test',), ('opc_test',))
 
     insert_statement = insert(orm.DimHeader)
-    with pgsql_connection.connect() as conn:
+    with postgres_connection.connect() as conn:
         result = conn.execute(
             insert_statement,
             good_data
@@ -501,7 +554,9 @@ def test_dim_header_good(pgsql_connection):
 
 
 @pytest.mark.orm
-def test_dim_header_dupe(pgsql_connection):
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_dim_header_dupe(postgres_connection):
     dupe_data = {
         "header": "ox_test",
         "parameter": "ox",
@@ -509,7 +564,7 @@ def test_dim_header_dupe(pgsql_connection):
         "other": None
     }
     insert_statement = insert(orm.DimHeader)
-    with pgsql_connection.connect() as conn:
+    with postgres_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,
             match=r"violates unique constraint"
@@ -521,6 +576,8 @@ def test_dim_header_dupe(pgsql_connection):
 
 
 @pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
 @pytest.mark.parametrize(
     "col_to_null", [
         "header",
@@ -528,7 +585,7 @@ def test_dim_header_dupe(pgsql_connection):
         "unit"
     ]
 )
-def test_dim_header_null(pgsql_connection, col_to_null):
+def test_dim_header_null(postgres_connection, col_to_null):
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -541,7 +598,7 @@ def test_dim_header_null(pgsql_connection, col_to_null):
     raw_data[col_to_null] = None
 
     insert_statement = insert(orm.DimHeader)
-    with pgsql_connection.connect() as conn:
+    with postgres_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,
             match=r"violates not-null constraint"
@@ -553,38 +610,31 @@ def test_dim_header_null(pgsql_connection, col_to_null):
 
 
 @pytest.mark.orm
-def test_fact_measurement_good(pgsql_connection):
-    tests = {}
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_fact_measurement_good(postgres_connection):
+    tests: dict[str, bool] = {}
     good_data = [
         {
-            "measurement_hash": "test1",
-            "point_hash": "othertest1",
+            "point_hash": "test1",
             "timestamp": dt.datetime(2020, 1, 1),
             "code": "ANT_123456",
-            "header": "ox_test",
-            "value": 0.1
         },
         {
-            "measurement_hash": "test2",
-            "point_hash": "othertest2",
+            "point_hash": "test2",
             "timestamp": dt.datetime(2020, 1, 2),
             "code": "ANT_131245",
-            "header": "no_test",
-            "value": 0.2
         },
         {
-            "measurement_hash": "test3",
-            "point_hash": "othertest3",
+            "point_hash": "test3",
             "timestamp": dt.datetime(2020, 1, 3),
             "code": "ANT_123567",
-            "header": "opc_test",
-            "value": 0.3
         },
     ]
     expected_pks = (('test1',), ('test2',), ('test3',))
 
     insert_statement = insert(orm.FactMeasurement)
-    with pgsql_connection.connect() as conn:
+    with postgres_connection.connect() as conn:
         result = conn.execute(
             insert_statement,
             good_data
@@ -596,17 +646,16 @@ def test_fact_measurement_good(pgsql_connection):
 
 
 @pytest.mark.orm
-def test_fact_measurement_dupe(pgsql_connection):
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_fact_measurement_dupe(postgres_connection):
     dupe_data = {
-            "measurement_hash": "test1",
-            "point_hash": "othertest6",
-            "timestamp": dt.datetime(2020, 1, 1),
-            "code": "ANT_123456",
-            "header": "ox_test",
-            "value": 0.1
+        "point_hash": "test3",
+        "timestamp": dt.datetime(2020, 1, 1),
+        "code": "ANT_123456",
     }
     insert_statement = insert(orm.FactMeasurement)
-    with pgsql_connection.connect() as conn:
+    with postgres_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,
             match=r"violates unique constraint"
@@ -618,28 +667,26 @@ def test_fact_measurement_dupe(pgsql_connection):
 
 
 @pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
 @pytest.mark.parametrize(
     "bad_key", [
         "code",
-        "header"
     ]
 )
-def test_fact_measurement_bad_foreign_key(pgsql_connection, bad_key):
+def test_fact_measurement_bad_foreign_key(postgres_connection, bad_key):
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
     ] = {
-            "measurement_hash": "test4",
-            "point_hash": "othertest4",
+            "point_hash": "test4",
             "timestamp": dt.datetime(2020, 1, 3),
-            "code": "ANT_123567",
-            "header": "opc_test",
-            "value": 0.3
+            "code": "ANT_123567"
     }
     raw_data[bad_key] = "BADKEY"
 
     insert_statement = insert(orm.FactMeasurement)
-    with pgsql_connection.connect() as conn:
+    with postgres_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,
             match=r"violates foreign key constraint"
@@ -651,32 +698,28 @@ def test_fact_measurement_bad_foreign_key(pgsql_connection, bad_key):
 
 
 @pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
 @pytest.mark.parametrize(
     "col_to_null", [
-        "measurement_hash",
         "point_hash",
         "timestamp",
-        "code",
-        "header",
-        "value"
+        "code"
     ]
 )
-def test_fact_measurement_null(pgsql_connection, col_to_null):
+def test_fact_measurement_null(postgres_connection, col_to_null):
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
     ] = {
-            "measurement_hash": "test6",
-            "point_hash": "othertest6",
+            "point_hash": "test5",
             "timestamp": dt.datetime(2020, 1, 1),
-            "code": "ANT_123456",
-            "header": "ox_test",
-            "value": 0.1
+            "code": "ANT_123456"
     }
     raw_data[col_to_null] = None
 
     insert_statement = insert(orm.FactMeasurement)
-    with pgsql_connection.connect() as conn:
+    with postgres_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,
             match=r"violates not-null constraint"
@@ -688,29 +731,31 @@ def test_fact_measurement_null(pgsql_connection, col_to_null):
 
 
 @pytest.mark.orm
-def test_dim_flag_good(pgsql_connection):
-    tests = {}
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_fact_value_good(postgres_connection):
+    tests: dict[str, bool] = {}
     good_data = [
         {
-            "point_hash": "othertest1",
-            "flag": "ox_test",
-            "value": "a"
+            "point_hash": "test1",
+            "header": "ox_test",
+            "value": 0.1
         },
         {
-            "point_hash": "othertest2",
-            "flag": "no_test",
-            "value": "b"
+            "point_hash": "test2",
+            "header": "no_test",
+            "value": 0.2
         },
         {
-            "point_hash": "othertest3",
-            "flag": "opc_test",
-            "value": "c"
+            "point_hash": "test3",
+            "header": "opc_test",
+            "value": 0.3
         },
     ]
     expected_pks = ((None,), (None,), (None,))
 
-    insert_statement = insert(orm.DimFlag)
-    with pgsql_connection.connect() as conn:
+    insert_statement = insert(orm.FactValue)
+    with postgres_connection.connect() as conn:
         result = conn.execute(
             insert_statement,
             good_data
@@ -722,24 +767,27 @@ def test_dim_flag_good(pgsql_connection):
 
 
 @pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
 @pytest.mark.parametrize(
     "bad_key", [
-        "point_hash"
+        "point_hash",
+        "header"
     ]
 )
-def test_dim_flag_bad_foreign_key(pgsql_connection, bad_key):
+def test_fact_value_bad_foreign_key(postgres_connection, bad_key):
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
     ] = {
-        "point_hash": "othertest4",
-        "flag": "ox_test",
-        "value": "a"
+        "point_hash": "test4",
+        "header": "ox_test",
+        "value": 0.1
     }
     raw_data[bad_key] = "BADKEY"
 
-    insert_statement = insert(orm.DimFlag)
-    with pgsql_connection.connect() as conn:
+    insert_statement = insert(orm.FactValue)
+    with postgres_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,
             match=r"violates foreign key constraint"
@@ -751,26 +799,28 @@ def test_dim_flag_bad_foreign_key(pgsql_connection, bad_key):
 
 
 @pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
 @pytest.mark.parametrize(
     "col_to_null", [
         "point_hash",
-        "flag",
+        "header",
         "value"
     ]
 )
-def test_dim_lcs_flags_null(pgsql_connection, col_to_null):
+def test_fact_value_null(postgres_connection, col_to_null):
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
     ] = {
-        "point_hash": "othertest5",
-        "flag": "ox_test",
-        "value": "a"
+        "point_hash": "test5",
+        "header": "ox_test",
+        "value": 0.1
     }
     raw_data[col_to_null] = None
 
-    insert_statement = insert(orm.DimFlag)
-    with pgsql_connection.connect() as conn:
+    insert_statement = insert(orm.FactValue)
+    with postgres_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,
             match=r"violates not-null constraint"
@@ -779,3 +829,104 @@ def test_dim_lcs_flags_null(pgsql_connection, col_to_null):
                 insert_statement,
                 raw_data
             )
+
+
+@pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_fact_flag_good(postgres_connection):
+    tests: dict[str, bool] = {}
+    good_data = [
+        {
+            "point_hash": "test1",
+            "flag": "ox_test",
+            "value": "a"
+        },
+        {
+            "point_hash": "test2",
+            "flag": "no_test",
+            "value": "b"
+        },
+        {
+            "point_hash": "test3",
+            "flag": "opc_test",
+            "value": "c"
+        },
+    ]
+    expected_pks = ((None,), (None,), (None,))
+
+    insert_statement = insert(orm.FactFlag)
+    with postgres_connection.connect() as conn:
+        result = conn.execute(
+            insert_statement,
+            good_data
+        )
+        pks = tuple(result.inserted_primary_key_rows)
+        conn.commit()
+    tests["Rows inserted"] = pks == expected_pks
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
+@pytest.mark.parametrize(
+    "bad_key", [
+        "point_hash"
+    ]
+)
+def test_fact_flag_bad_foreign_key(postgres_connection, bad_key):
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+        "point_hash": "test4",
+        "flag": "ox_test",
+        "value": "a"
+    }
+    raw_data[bad_key] = "BADKEY"
+
+    insert_statement = insert(orm.FactFlag)
+    with postgres_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates foreign key constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
+@pytest.mark.parametrize(
+    "col_to_null", [
+        "point_hash",
+        "flag",
+        "value"
+    ]
+)
+def test_fact_flag_null(postgres_connection, col_to_null):
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+        "point_hash": "test5",
+        "flag": "ox_test",
+        "value": "a"
+    }
+    raw_data[col_to_null] = None
+
+    insert_statement = insert(orm.FactFlag)
+    with postgres_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates not-null constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
