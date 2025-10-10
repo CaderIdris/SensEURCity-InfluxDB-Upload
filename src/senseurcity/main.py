@@ -5,7 +5,7 @@ level = logging.DEBUG if os.getenv('PYLOGDEBUG') else logging.INFO
 logger = logging.getLogger()
 logger.setLevel(level)
 
-formatter = \
+format_str = \
     '%(asctime)s - %(funcName)s - %(levelname)s - %(message)s' \
     if os.getenv('PYLOGDEBUG') else '%(message)s'
 

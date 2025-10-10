@@ -38,6 +38,7 @@ from senseurcity import orm
 from senseurcity import engine
 
 try:
+    from docker.errors import DockerException
     import psycopg
     from testcontainers.postgres import PostgresContainer
 except ImportError:
@@ -46,7 +47,13 @@ except ImportError:
         allow_module_level=True
     )
 
-postgres = PostgresContainer("postgres:18-alpine", driver="psycopg")
+try:
+    postgres = PostgresContainer("postgres:18-alpine", driver="psycopg")
+except DockerException:
+    pytest.skip(
+        "Docker permissions issue",
+        allow_module_level=True
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
