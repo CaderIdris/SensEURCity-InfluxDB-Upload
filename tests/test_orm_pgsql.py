@@ -78,6 +78,13 @@ def postgres_connection(db_url):
     return db_engine
 
 
+@pytest.fixture(scope="module", autouse=True)
+def postgres_connection_alt_schema(db_url):
+    db_engine = engine.get_engine(db_url, schema_name="test_alt_schema")
+    orm._Base_V1.metadata.create_all(db_engine)
+    return db_engine
+
+
 def get_table_cols(cursor, expected_cols, table_name):
     tests: dict[str, bool] = {}
     cursor.execute(
@@ -95,7 +102,6 @@ def get_table_cols(cursor, expected_cols, table_name):
     formatted_result = {
         col[0]: col[1:] for col in result
     }
-    print(formatted_result)
     for col, config in expected_cols.items():
         tests[f"{col} OK"] = config == formatted_result[col]
 
@@ -130,7 +136,6 @@ def get_foreign_keys(cursor, expected_keys, table_name):
     formatted_result = {
         col[0]: col[1:] for col in result
     }
-    print(formatted_result)
     for col, config in expected_keys.items():
         tests[f"{col} OK"] = config == formatted_result[col]
 
@@ -146,14 +151,14 @@ def get_indices(cursor, expected_indices, table_name):
         f"""
         SELECT * 
         FROM pg_indexes
-        WHERE tablename = '{table_name}';
+        WHERE tablename = '{table_name}'
+        AND schemaname = 'measurement';
         """
     )
     result = cursor.fetchall()
     formatted_result = [
         col[2] for col in result
     ]
-    print(*formatted_result, sep='\n')
     for col in expected_indices:
         tests[f"{col} OK"] = col in expected_indices
 
@@ -166,7 +171,8 @@ def get_indices(cursor, expected_indices, table_name):
 @pytest.mark.orm
 @pytest.mark.postgres
 @pytest.mark.base_v1
-def test_create_tables(db_url):
+@pytest.mark.parametrize("schema_name", ["measurement", "test_alt_schema"])
+def test_create_tables(db_url, schema_name):
     tests: dict[str, bool] = {}
     expected_tables = (
         "dim_device",
@@ -178,10 +184,10 @@ def test_create_tables(db_url):
     with psycopg.connect(db_url.replace("+psycopg", "")) as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """
+                f"""
                 SELECT * 
                 FROM information_schema.tables
-                WHERE table_schema = 'measurement';
+                WHERE table_schema = '{schema_name}';
                 """
             )
             result = cur.fetchall()

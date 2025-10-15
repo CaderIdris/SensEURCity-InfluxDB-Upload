@@ -8,26 +8,6 @@ import requests
 
 from senseurcity.zipped import Cities, download_data, SensEURCityZipFile
 
-@pytest.fixture(scope="session")
-def data_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    return tmp_path_factory.mktemp("zip_download_test")
-
-
-@pytest.fixture(scope="session")
-def sec_mock_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    zip_dir = tmp_path_factory.mktemp("mock_senseurcity_data")
-    zip_path = zip_dir / "SensEURCity.zip"
-    example_data = Path("./tests/test_zipped/")    
-    with zipfile.ZipFile(zip_path, "a") as zip_file:
-        zip_file.mkdir("dataset")
-        for csv_file in example_data.glob("*.csv"):
-            with csv_file.open("r") as test_data:
-                zip_file.writestr(
-                    f"dataset/{csv_file.name}",
-                    test_data.read()
-                )
-    return zip_path
-
 
 @pytest.fixture(scope="session")
 def empty_mock_path(tmp_path_factory: pytest.TempPathFactory) -> Path:

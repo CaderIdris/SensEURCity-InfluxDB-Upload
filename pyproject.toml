@@ -37,7 +37,8 @@ markers = [
 	"sqlite",
 	"postgres",
 	"base_v1",
-	"zipfile"
+	"zipfile",
+	"data"
 ]
 
 addopts = [
