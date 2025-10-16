@@ -2,6 +2,7 @@ from collections.abc import Generator
 from dataclasses import dataclass
 import datetime as dt
 import hashlib
+import re
 from typing import Self, TypedDict
 
 import numpy as np
@@ -147,7 +148,7 @@ class SensEURCityCSV:
             value_name="value",
             id_vars="point_hash"
         ).dropna(subset="value")
-
+        csv_subset["header"] = csv_subset["header"].str.replace('.', '_')
         for record in csv_subset.to_dict('records'):
             yield record
     
@@ -155,6 +156,10 @@ class SensEURCityCSV:
     def flags(self) -> Generator[FlagsRecord]:
         """"""
         csv_subset = self.csv.loc[:, (*self.flag_cols, "point_hash")]
+        csv_subset = csv_subset.rename(
+            {self.location_name: "Collocation"},
+            axis=1
+        )
         csv_subset = csv_subset.melt(
             var_name="flag",
             value_name="value",
@@ -185,9 +190,20 @@ class SensEURCityCSV:
     @property
     def reference_values(self) -> Generator[ValuesRecord]:
         """"""
+        measurement_match = re.compile(r"Ref\.(?:(?:NO)|(?:CO)|(?:O)|(?:PM))")
+        city_match = {
+            "ANT": "ANT",
+            "VIT": "ANT",
+            "OSL": "OSL",
+            "ZAG": "ZAG",
+            "ISP": "ISP"
+        }
         csv_subset = (
             self.csv
-            .loc[:, [*self.reference_cols, "ref_point_hash"]]
+            .loc[:, [
+                *self.reference_cols,
+                "ref_point_hash",
+            ]]
             .dropna(
                 subset="ref_point_hash"
             )
@@ -196,10 +212,19 @@ class SensEURCityCSV:
         csv_subset = csv_subset.melt(
             var_name="header",
             value_name="value",
-            id_vars="point_hash"
+            id_vars=("point_hash", self.location_name)
         ).dropna(subset="value")
+
+        csv_subset["header"] = csv_subset.apply(
+            lambda x: (
+                    f"{x['header'].replace('.', '_')}_{city_match[x[self.location_name][:3]]}"
+                    if re.match(measurement_match, x['header']) else
+                    x['header'].replace('.', '_')
+            ),
+            axis=1
+        )
+        csv_subset = csv_subset.drop(self.location_name, axis=1)
 
         for record in csv_subset.to_dict('records'):
             yield record
     
-

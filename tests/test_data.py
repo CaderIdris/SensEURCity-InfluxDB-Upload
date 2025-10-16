@@ -139,6 +139,8 @@ def test_get_values():
         csv_dataclass.measurement_cols
     ) == 0
 
+    tests["No . in headers"] = not df["header"].str.contains(".", regex=False).any()
+
     for test, result in tests.items():
         if not result:
             print(f"{test}: {result}")
@@ -168,8 +170,10 @@ def test_get_flags():
     tests["No extra flags"] = len(
         set(df["flag"].unique()) -
         csv_dataclass.flag_cols -
-        {"Location.ID"}
+        {"Collocation"}
     ) == 0
+
+    tests["No . in flags"] = not df["flag"].str.contains(".", regex=False).any()
 
     for test, result in tests.items():
         if not result:
@@ -260,8 +264,20 @@ def test_get_ref_values():
 
     tests["No extra headers"] = len(
         set(df["header"].unique()) -
-        csv_dataclass.reference_cols
+        {
+            "Ref_NO_ANT",
+            "Ref_NO2_ANT",
+            "Ref_O3_ANT",
+            "Ref_CO_ppm_ANT",
+            "Ref_Lat",
+            "Ref_Long",
+            "Ref_Temp",
+            "Ref_RH"
+        }
     ) == 0
+    print(df)
+
+    tests["No . in headers"] = not df["header"].str.contains(".", regex=False).any()
 
     for test, result in tests.items():
         if not result:
