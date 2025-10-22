@@ -7,6 +7,7 @@ Tests
 - Are table schemas valid?
     - `dim_device`
     - `dim_header`
+    - `dim_colocation`
     - `fact_measurement`
     - `fact_value`
     - `fact_flag`
@@ -28,6 +29,7 @@ Tests
     - Are null values rejected?
     - Are bad foreign keys rejected?
 """
+#TODO: Sort ^
 import datetime as dt
 
 import pytest
@@ -177,6 +179,7 @@ def test_create_tables(db_url, schema_name):
     expected_tables = (
         "dim_device",
         "dim_header",
+        "dim_colocation",
         "fact_measurement",
         "fact_value",
         "fact_flag"
@@ -214,10 +217,10 @@ def test_create_tables(db_url, schema_name):
 def test_dim_device_schema(db_url, sql_types):
     table_name = "dim_device"
     expected_col_structure = {
-        "code": ('NO',sql_types["PostgreSQL"]["string"], None),
-        "dataset": ('NO',sql_types["PostgreSQL"]["string"], None),
+        "key": ('NO',sql_types["PostgreSQL"]["string"], None),
         "name": ('NO',sql_types["PostgreSQL"]["string"], None),
         "short_name": ('NO',sql_types["PostgreSQL"]["string"], None),
+        "dataset": ('NO',sql_types["PostgreSQL"]["string"], None),
         "reference": ('NO',sql_types["PostgreSQL"]["boolean"], None),
         "other": ('YES',sql_types["PostgreSQL"]["json"], None),
     }
@@ -287,10 +290,10 @@ def test_fact_measurement_schema(db_url, sql_types):
     expected_col_structure = {
         "point_hash": ('NO', sql_types["PostgreSQL"]["string"], None),
         "timestamp": ('NO', sql_types["PostgreSQL"]["datetime"], None),
-        "code": ('NO', sql_types["PostgreSQL"]["string"], None)
+        "device_key": ('NO', sql_types["PostgreSQL"]["string"], None)
     }
     expected_foreign_keys = {
-        "fact_measurement_code_fkey": ('fact_measurement', 'code', 'dim_device', 'code'),
+        "fact_measurement_device_key_fkey": ('fact_measurement', 'device_key', 'dim_device', 'key'),
     }
     expected_indices = [
         "fact_measurement_pkey"
@@ -388,7 +391,7 @@ def test_dim_device_good(postgres_connection):
     tests: dict[str, bool] = {}
     good_data = [
         {
-            "code": "ANT_123456",
+            "key": "ANT_123456",
             "dataset": "test",
             "name": "Antwerp 1",
             "short_name": "A1",
@@ -396,7 +399,7 @@ def test_dim_device_good(postgres_connection):
             "other": {"key": "value"}
         },
         {
-            "code": "ANT_123567",
+            "key": "ANT_123567",
             "dataset": "test",
             "name": "Antwerp 2",
             "short_name": "A2",
@@ -404,7 +407,7 @@ def test_dim_device_good(postgres_connection):
             "other": None
         },
         {
-            "code": "ANT_131245",
+            "key": "ANT_131245",
             "dataset": "test",
             "name": "Antwerp 3",
             "short_name": "A3",
@@ -412,7 +415,7 @@ def test_dim_device_good(postgres_connection):
             "other": None
         },
         {
-            "code": "ANT_R000",
+            "key": "ANT_R000",
             "dataset": "test",
             "name": "Antwerp Ref 1",
             "short_name": "AR1",
@@ -420,7 +423,7 @@ def test_dim_device_good(postgres_connection):
             "other": {"key": "value"}
         },
         {
-            "code": "ANT_R001",
+            "key": "ANT_R001",
             "dataset": "test",
             "name": "Antwerp Ref 2",
             "short_name": "AR2",
@@ -454,7 +457,7 @@ def test_dim_device_good(postgres_connection):
 @pytest.mark.parametrize(
     "dupe_data", [
             {
-                "code": "ANT_123456",
+                "key": "ANT_123456",
                 "name": "Antwerp 1",
                 "short_name": "A1",
                 "dataset": "test",
@@ -462,7 +465,7 @@ def test_dim_device_good(postgres_connection):
                 "other": None
             },
             {
-                "code": "ANT_123456",
+                "key": "ANT_123456",
                 "name": "Antwerp 4",
                 "short_name": "A4",
                 "dataset": "test",
@@ -470,7 +473,7 @@ def test_dim_device_good(postgres_connection):
                 "other": None
             },
             {
-                "code": "ANT_123457",
+                "key": "ANT_123457",
                 "name": "Antwerp 1",
                 "short_name": "A4",
                 "dataset": "test",
@@ -478,7 +481,7 @@ def test_dim_device_good(postgres_connection):
                 "other": None
             },
             {
-                "code": "ANT_123457",
+                "key": "ANT_123457",
                 "name": "Antwerp 4",
                 "short_name": "A1",
                 "dataset": "test",
@@ -487,7 +490,7 @@ def test_dim_device_good(postgres_connection):
             },
     ]
 )
-def test_dim_lcs_dupe(postgres_connection, dupe_data):
+def test_dim_device_dupe(postgres_connection, dupe_data):
     insert_statement = insert(orm.DimDevice)
     with postgres_connection.connect() as conn:
         with pytest.raises(
@@ -504,11 +507,11 @@ def test_dim_lcs_dupe(postgres_connection, dupe_data):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 @pytest.mark.parametrize(
-    "col_to_null", ["code", "name", "short_name"]
+    "col_to_null", ["key", "name", "short_name"]
 )
-def test_dim_lcs_null(postgres_connection, col_to_null):
+def test_dim_device_null(postgres_connection, col_to_null):
     raw_data: dict[str, str | dt.datetime | int | float | None] = {
-        "code": "ANT_123457",
+        "key": "ANT_123457",
         "name": "Antwerp 4",
         "short_name": "A4"
     }
@@ -631,17 +634,17 @@ def test_fact_measurement_good(postgres_connection):
         {
             "point_hash": "test1",
             "timestamp": dt.datetime(2020, 1, 1),
-            "code": "ANT_123456",
+            "device_key": "ANT_123456",
         },
         {
             "point_hash": "test2",
             "timestamp": dt.datetime(2020, 1, 2),
-            "code": "ANT_131245",
+            "device_key": "ANT_131245",
         },
         {
             "point_hash": "test3",
             "timestamp": dt.datetime(2020, 1, 3),
-            "code": "ANT_123567",
+            "device_key": "ANT_123567",
         },
     ]
     expected_pks = (('test1',), ('test2',), ('test3',))
@@ -665,7 +668,7 @@ def test_fact_measurement_dupe(postgres_connection):
     dupe_data = {
         "point_hash": "test3",
         "timestamp": dt.datetime(2020, 1, 1),
-        "code": "ANT_123456",
+        "device_key": "ANT_123456",
     }
     insert_statement = insert(orm.FactMeasurement)
     with postgres_connection.connect() as conn:
@@ -684,7 +687,7 @@ def test_fact_measurement_dupe(postgres_connection):
 @pytest.mark.base_v1
 @pytest.mark.parametrize(
     "bad_key", [
-        "code",
+        "device_key",
     ]
 )
 def test_fact_measurement_bad_foreign_key(postgres_connection, bad_key):
@@ -694,7 +697,7 @@ def test_fact_measurement_bad_foreign_key(postgres_connection, bad_key):
     ] = {
             "point_hash": "test4",
             "timestamp": dt.datetime(2020, 1, 3),
-            "code": "ANT_123567"
+            "device_key": "ANT_123567"
     }
     raw_data[bad_key] = "BADKEY"
 
@@ -717,7 +720,7 @@ def test_fact_measurement_bad_foreign_key(postgres_connection, bad_key):
     "col_to_null", [
         "point_hash",
         "timestamp",
-        "code"
+        "device_key"
     ]
 )
 def test_fact_measurement_null(postgres_connection, col_to_null):
@@ -727,7 +730,7 @@ def test_fact_measurement_null(postgres_connection, col_to_null):
     ] = {
             "point_hash": "test5",
             "timestamp": dt.datetime(2020, 1, 1),
-            "code": "ANT_123456"
+            "device_key": "ANT_123456"
     }
     raw_data[col_to_null] = None
 
@@ -933,6 +936,113 @@ def test_fact_flag_null(postgres_connection, col_to_null):
     raw_data[col_to_null] = None
 
     insert_statement = insert(orm.FactFlag)
+    with postgres_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates not-null constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_dim_colocation_good(postgres_connection):
+    tests: dict[str, bool] = {}
+    good_data = [
+        {
+            "device_key": "ANT_123456",
+            "other_key": "ANT_R000",
+            "start_date": dt.datetime(2020, 1, 1),
+            "end_date": dt.datetime(2020, 3, 1)
+        },
+        {
+            "device_key": "ANT_123456",
+            "other_key": "ANT_R001",
+            "start_date": dt.datetime(2020, 2, 1),
+            "end_date": dt.datetime(2020, 4, 1)
+        },
+        {
+            "device_key": "ANT_131245",
+            "other_key": "ANT_R000",
+            "start_date": dt.datetime(2020, 7, 1),
+            "end_date": dt.datetime(2020, 8, 1)
+        },
+    ]
+    expected_pks = ((None,), (None,), (None,))
+
+    insert_statement = insert(orm.DimColocation)
+    with postgres_connection.connect() as conn:
+        result = conn.execute(
+            insert_statement,
+            good_data
+        )
+        pks = tuple(result.inserted_primary_key_rows)
+        conn.commit()
+    tests["Rows inserted"] = pks == expected_pks
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
+@pytest.mark.parametrize(
+    "bad_key", [
+        "device_key",
+        "other_key"
+    ]
+)
+def test_dim_colocation_bad_foreign_key(postgres_connection, bad_key):
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+            "device_key": "ANT_131245",
+            "other_key": "ANT_R000",
+            "start_date": dt.datetime(2020, 7, 1),
+            "end_date": dt.datetime(2020, 8, 1)
+    }
+    raw_data[bad_key] = "BADKEY"
+
+    insert_statement = insert(orm.DimColocation)
+    with postgres_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates foreign key constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
+@pytest.mark.parametrize(
+    "col_to_null", [
+        "device_key",
+        "other_key",
+        "start_date",
+        "end_date"
+    ]
+)
+def test_dim_colocation_null(postgres_connection, col_to_null):
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+            "device_key": "ANT_131245",
+            "other_key": "ANT_R000",
+            "start_date": dt.datetime(2020, 7, 1),
+            "end_date": dt.datetime(2020, 8, 1)
+    }
+    raw_data[col_to_null] = None
+
+    insert_statement = insert(orm.DimColocation)
     with postgres_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,

@@ -7,6 +7,7 @@ Tests
 - Are table schemas valid?
     - `dim_device`
     - `dim_header`
+    - `dim_colocation`
     - `fact_measurement`
     - `fact_value`
     - `fact_flag`
@@ -108,6 +109,7 @@ def test_create_tables(db_path):
     expected_tables = (
         "dim_device",
         "dim_header",
+        "dim_colocation",
         "fact_measurement",
         "fact_value",
         "fact_flag"
@@ -138,10 +140,10 @@ def test_create_tables(db_path):
 def test_dim_device_schema(db_path, sql_types):
     table_name = "dim_device"
     expected_col_structure = {
-        "code": (sql_types["SQLite"]["string"], 1, None, 1, 0),
-        "dataset": (sql_types["SQLite"]["string"], 1, None, 0, 0),
+        "key": (sql_types["SQLite"]["string"], 1, None, 1, 0),
         "name": (sql_types["SQLite"]["string"], 1, None, 0, 0),
         "short_name": (sql_types["SQLite"]["string"], 1, None, 0, 0),
+        "dataset": (sql_types["SQLite"]["string"], 1, None, 0, 0),
         "reference": (sql_types["SQLite"]["boolean"], 1, None, 0, 0),
         "other": (sql_types["SQLite"]["json"], 0, None, 0, 0),
     }
@@ -211,10 +213,10 @@ def test_fact_measurement_schema(db_path, sql_types):
     expected_col_structure = {
         "point_hash": (sql_types["SQLite"]["string"], 1, None, 1, 0),
         "timestamp": (sql_types["SQLite"]["datetime"], 1, None, 0, 0),
-        "code": (sql_types["SQLite"]["string"], 1, None, 0, 0),
+        "device_key": (sql_types["SQLite"]["string"], 1, None, 0, 0),
     }
     expected_foreign_keys = {
-        "dim_device_0": ("code", "code", "NO ACTION", "NO ACTION", "NONE")
+        "dim_device_0": ("device_key", "key", "NO ACTION", "NO ACTION", "NONE")
     }
     
     expected_indices = {
@@ -299,7 +301,7 @@ def test_dim_device_good(sqlite_connection):
     tests = {}
     good_data = [
         {
-            "code": "ANT_123456",
+            "key": "ANT_123456",
             "dataset": "test",
             "name": "Antwerp 1",
             "short_name": "A1",
@@ -307,7 +309,7 @@ def test_dim_device_good(sqlite_connection):
             "other": {"key": "value"}
         },
         {
-            "code": "ANT_123567",
+            "key": "ANT_123567",
             "dataset": "test",
             "name": "Antwerp 2",
             "short_name": "A2",
@@ -315,7 +317,7 @@ def test_dim_device_good(sqlite_connection):
             "other": None
         },
         {
-            "code": "ANT_131245",
+            "key": "ANT_131245",
             "dataset": "test",
             "name": "Antwerp 3",
             "short_name": "A3",
@@ -323,7 +325,7 @@ def test_dim_device_good(sqlite_connection):
             "other": None
         },
         {
-            "code": "ANT_R000",
+            "key": "ANT_R000",
             "dataset": "test",
             "name": "Antwerp Ref 1",
             "short_name": "AR1",
@@ -331,7 +333,7 @@ def test_dim_device_good(sqlite_connection):
             "other": {"key": "value"}
         },
         {
-            "code": "ANT_R001",
+            "key": "ANT_R001",
             "dataset": "test",
             "name": "Antwerp Ref 2",
             "short_name": "AR2",
@@ -365,7 +367,7 @@ def test_dim_device_good(sqlite_connection):
 @pytest.mark.parametrize(
     "dupe_data", [
             {
-                "code": "ANT_123456",
+                "key": "ANT_123456",
                 "name": "Antwerp 1",
                 "short_name": "A1",
                 "dataset": "test",
@@ -373,7 +375,7 @@ def test_dim_device_good(sqlite_connection):
                 "other": None
             },
             {
-                "code": "ANT_123456",
+                "key": "ANT_123456",
                 "name": "Antwerp 4",
                 "short_name": "A4",
                 "dataset": "test",
@@ -381,7 +383,7 @@ def test_dim_device_good(sqlite_connection):
                 "other": None
             },
             {
-                "code": "ANT_123457",
+                "key": "ANT_123457",
                 "name": "Antwerp 1",
                 "short_name": "A4",
                 "dataset": "test",
@@ -389,7 +391,7 @@ def test_dim_device_good(sqlite_connection):
                 "other": None
             },
             {
-                "code": "ANT_123457",
+                "key": "ANT_123457",
                 "name": "Antwerp 4",
                 "short_name": "A1",
                 "dataset": "test",
@@ -419,7 +421,7 @@ def test_dim_lcs_dupe(sqlite_connection, dupe_data):
 )
 def test_dim_lcs_null(sqlite_connection, col_to_null):
     raw_data: dict[str, str | dt.datetime | int | float | None] = {
-        "code": "ANT_123457",
+        "key": "ANT_123457",
         "name": "Antwerp 4",
         "short_name": "A4"
     }
@@ -542,17 +544,17 @@ def test_fact_measurement_good(sqlite_connection):
         {
             "point_hash": "test1",
             "timestamp": dt.datetime(2020, 1, 1),
-            "code": "ANT_123456",
+            "device_key": "ANT_123456",
         },
         {
             "point_hash": "test2",
             "timestamp": dt.datetime(2020, 1, 2),
-            "code": "ANT_131245",
+            "device_key": "ANT_131245",
         },
         {
             "point_hash": "test3",
             "timestamp": dt.datetime(2020, 1, 3),
-            "code": "ANT_123567",
+            "device_key": "ANT_123567",
         },
     ]
     expected_pks = (('test1',), ('test2',), ('test3',))
@@ -576,7 +578,7 @@ def test_fact_measurement_dupe(sqlite_connection):
     dupe_data = {
             "point_hash": "test3",
             "timestamp": dt.datetime(2020, 1, 1),
-            "code": "ANT_123456",
+            "device_key": "ANT_123456",
     }
     insert_statement = insert(orm.FactMeasurement)
     with sqlite_connection.connect() as conn:
@@ -595,7 +597,7 @@ def test_fact_measurement_dupe(sqlite_connection):
 @pytest.mark.base_v1
 @pytest.mark.parametrize(
     "bad_key", [
-        "code"
+        "device_key"
     ]
 )
 def test_fact_measurement_bad_foreign_key(sqlite_connection, bad_key):
@@ -605,7 +607,7 @@ def test_fact_measurement_bad_foreign_key(sqlite_connection, bad_key):
     ] = {
             "point_hash": "test4",
             "timestamp": dt.datetime(2020, 1, 3),
-            "code": "ANT_123567",
+            "device_key": "ANT_123567",
     }
     raw_data[bad_key] = "BADKEY"
 
@@ -628,7 +630,7 @@ def test_fact_measurement_bad_foreign_key(sqlite_connection, bad_key):
     "col_to_null", [
         "point_hash",
         "timestamp",
-        "code"
+        "device_key"
     ]
 )
 def test_fact_measurement_null(sqlite_connection, col_to_null):
@@ -853,3 +855,112 @@ def test_fact_flag_null(sqlite_connection, col_to_null):
                 insert_statement,
                 raw_data
             )
+
+
+@pytest.mark.orm
+@pytest.mark.sqlite
+@pytest.mark.base_v1
+def test_dim_colocation_good(sqlite_connection):
+    tests = {}
+    good_data = [
+        {
+            "device_key": "ANT_123456",
+            "other_key": "ANT_R000",
+            "start_date": dt.datetime(2020, 1, 1),
+            "end_date": dt.datetime(2020, 3, 1)
+        },
+        {
+            "device_key": "ANT_123456",
+            "other_key": "ANT_R001",
+            "start_date": dt.datetime(2020, 2, 1),
+            "end_date": dt.datetime(2020, 4, 1)
+        },
+        {
+            "device_key": "ANT_131245",
+            "other_key": "ANT_R000",
+            "start_date": dt.datetime(2020, 7, 1),
+            "end_date": dt.datetime(2020, 8, 1)
+        },
+    ]
+    expected_pks = ((None,), (None,), (None,))
+
+    insert_statement = insert(orm.DimColocation)
+    with sqlite_connection.connect() as conn:
+        result = conn.execute(
+            insert_statement,
+            good_data
+        )
+        pks = tuple(result.inserted_primary_key_rows)
+        conn.commit()
+    tests["Rows inserted"] = pks == expected_pks
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.sqlite
+@pytest.mark.base_v1
+@pytest.mark.parametrize(
+    "bad_key", [
+        "device_key",
+        "other_key"
+    ]
+)
+def test_dim_colocation_bad_foreign_key(sqlite_connection, bad_key):
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+            "device_key": "ANT_131245",
+            "other_key": "ANT_R000",
+            "start_date": dt.datetime(2020, 7, 1),
+            "end_date": dt.datetime(2020, 8, 1)
+    }
+    raw_data[bad_key] = "BADKEY"
+
+    insert_statement = insert(orm.DimColocation)
+    with sqlite_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"FOREIGN KEY constraint failed"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.sqlite
+@pytest.mark.base_v1
+@pytest.mark.parametrize(
+    "col_to_null", [
+        "device_key",
+        "other_key",
+        "start_date",
+        "end_date"
+    ]
+)
+def test_dim_colocation_null(sqlite_connection, col_to_null):
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+            "device_key": "ANT_131245",
+            "other_key": "ANT_R000",
+            "start_date": dt.datetime(2020, 7, 1),
+            "end_date": dt.datetime(2020, 8, 1)
+    }
+    raw_data[col_to_null] = None
+
+    insert_statement = insert(orm.DimColocation)
+    with sqlite_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"NOT NULL constraint failed"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+

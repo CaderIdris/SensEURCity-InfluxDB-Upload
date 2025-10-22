@@ -27,6 +27,13 @@ class FlagsRecord(TypedDict):
     value: str
 
 
+class ColocationRecord(TypedDict):
+    device_key: str
+    other_key: str
+    start_date: dt.datetime
+    end_date: dt.datetime
+
+
 @dataclass
 class SensEURCityCSV:
     """Dataclass for getting measurements from a SensEURCity csv file.
@@ -89,7 +96,7 @@ class SensEURCityCSV:
         flag_cols = {
             col for col in csv.columns
             if "_flag" == col[-5:]
-        } | {location_name}
+        }
 
         measurement_cols = (
             set(csv.columns) -
@@ -118,7 +125,7 @@ class SensEURCityCSV:
             for row in csv.iterrows()
         ]
         csv = csv.set_index(date_name)
-
+        csv.index.name = "date"
         return cls(
             name=name,
             csv=csv,
@@ -156,10 +163,6 @@ class SensEURCityCSV:
     def flags(self) -> Generator[FlagsRecord]:
         """"""
         csv_subset = self.csv.loc[:, (*self.flag_cols, "point_hash")]
-        csv_subset = csv_subset.rename(
-            {self.location_name: "Collocation"},
-            axis=1
-        )
         csv_subset = csv_subset.melt(
             var_name="flag",
             value_name="value",
@@ -167,6 +170,55 @@ class SensEURCityCSV:
         ).dropna(subset="value")
 
         for record in csv_subset.to_dict('records'):
+            yield record
+
+    @property
+    def colocation(self) -> Generator[ColocationRecord]:
+        """"""
+        # Select rows where the location ID changes
+        csv_subset = (
+                self.csv
+                .loc[:, [self.location_name]]
+                .fillna("")
+                .reset_index()
+        )
+        last_row_before_change = (
+                csv_subset[self.location_name] != 
+                csv_subset[self.location_name].shift(1)
+        )
+        first_row_after_change = (
+                csv_subset[self.location_name] != 
+                csv_subset[self.location_name].shift(-1)
+        )
+        changed_rows = csv_subset[
+            last_row_before_change |
+            first_row_after_change
+        ].reset_index()
+
+        # Assign each change to a group
+        csv_subset.loc[changed_rows["index"], "Group"] = list(
+                changed_rows.index
+        )
+        csv_subset["Group"] = csv_subset["Group"].ffill()
+
+        # Remove blank periods
+        csv_subset = csv_subset[csv_subset[self.location_name] != ""]
+
+        # Group and generate co-location dataset
+        grouped = (
+            csv_subset.groupby([self.location_name, "Group"]).agg(
+                start_date=pd.NamedAgg(column="date", aggfunc="min"),
+                end_date=pd.NamedAgg(column="date", aggfunc="max"),
+            )
+            .reset_index()
+            .drop("Group", axis=1)
+            .rename(
+                {self.location_name: "other_key"},
+                axis=1
+            )
+        )
+        grouped["device_key"] = self.name
+        for record in grouped.to_dict('records'):
             yield record
 
     @property

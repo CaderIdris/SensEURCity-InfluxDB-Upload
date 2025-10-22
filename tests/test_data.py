@@ -44,11 +44,8 @@ def test_download_zip(csv_path):
     tests["No overlap: measurement_cols + flag_cols"] = not len(
             csv_dataclass.flag_cols & csv_dataclass.measurement_cols
     )
-    tests["1 overlap: flag_cols + ref_cols"] = len(
+    tests["No overlap: flag_cols + ref_cols"] = not len(
             csv_dataclass.flag_cols & csv_dataclass.reference_cols
-    ) == 1
-    tests["Location.ID only overlap: flag_cols + ref_cols"] = (
-        "Location.ID" in csv_dataclass.flag_cols & csv_dataclass.reference_cols
     )
 
     for test, result in tests.items():

@@ -41,10 +41,10 @@ class DimDevice(_Base_V1):
 
     __tablename__ = "dim_device"
 
-    code: Mapped[str] = mapped_column(primary_key=True)
-    dataset: Mapped[str] = mapped_column(nullable=False)
+    key: Mapped[str] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(nullable=False, unique=True)
     short_name: Mapped[str] = mapped_column(nullable=False, unique=True)
+    dataset: Mapped[str] = mapped_column(nullable=False)
     reference: Mapped[bool] = mapped_column(nullable=False)
     other: Mapped[dict[str, Any]] = mapped_column(nullable=True)
 
@@ -77,6 +77,45 @@ class DimHeader(_Base_V1):
     other: Mapped[dict[str, Any]] = mapped_column(nullable=True)
 
 
+class DimColocation(_Base_V1):
+    """Declarative mapping of co-location dimension table.
+
+    This table is used to store information on periods a sensor is co-located
+    with a reference monitor.
+
+    Schema name: **measurement**
+
+    Table name: **dim_colocation**
+
+    Schema
+    ------
+    - *id* [int, pk]: Row index
+    - *device_key* [str, not null]: Which device is co-located.
+    - *other_key* [str, not null]: The other device it is co-located with.
+    - *start_date* [datetime, not null]: When the co-location started.
+    - *timestamp* [datetime, not null]: When the co-location ended.
+    """
+
+    __tablename__ = "dim_colocation"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    device_key: Mapped[str] = mapped_column(nullable=False)
+    other_key: Mapped[str] = mapped_column(nullable=False)
+    start_date: Mapped[datetime] = mapped_column(nullable=False)
+    end_date: Mapped[datetime] = mapped_column(nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["device_key"],
+            ["dim_device.key"]
+        ),
+        ForeignKeyConstraint(
+            ["other_key"],
+            ["dim_device.key"]
+        ),
+    )
+
+
 class FactMeasurement(_Base_V1):
     """Declarative mapping of measurement point fact table.
 
@@ -99,12 +138,12 @@ class FactMeasurement(_Base_V1):
 
     point_hash: Mapped[str] = mapped_column(primary_key=True)
     timestamp: Mapped[datetime] = mapped_column(nullable=False)
-    code: Mapped[str] = mapped_column(nullable=False)
+    device_key: Mapped[str] = mapped_column(nullable=False)
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["code"],
-            ["dim_device.code"]
+            ["device_key"],
+            ["dim_device.key"]
         ),
     )
 
