@@ -73,15 +73,15 @@ class ColocationRecord(TypedDict):
         The co-located device
     other_key : str
         The device it was co-located with
-    start_date : dt.datetime
+    start_date : pd.Timestamp
         The start of the co-location (inclusive)
-    end_date : dt.datetime
+    end_date : pd.Timestamp
         The end of the co-location (inclusive)
     """
     device_key: str
     other_key: str
-    start_date: dt.datetime
-    end_date: dt.datetime
+    start_date: pd.Timestamp
+    end_date: pd.Timestamp
 
 
 @dataclass

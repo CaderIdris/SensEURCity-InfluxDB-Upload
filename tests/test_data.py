@@ -9,6 +9,7 @@ from senseurcity.data import SensEURCityCSV
 
 
 def file_paths() -> list[Path]:
+    """Get paths of all test csvs."""
     return list(
         Path("./tests/test_zipped").glob("*.csv")
     )
@@ -17,8 +18,9 @@ def file_paths() -> list[Path]:
 @pytest.fixture
 def colocation_dataset() -> tuple[
     pd.DataFrame,
-    tuple[dict[str, str|dt.datetime], ...]
+    tuple[tuple[str, str, dt.datetime, dt.datetime], ...]
 ]:
+    """Generate a test dataset for the colocation test."""
     locations = (
         (["A"] * 300) +
         ([np.nan] * 98) +
@@ -74,9 +76,19 @@ def colocation_dataset() -> tuple[
 
 @pytest.mark.data
 @pytest.mark.parametrize("csv_path", file_paths())
-def test_download_zip(csv_path):
-    """
+def test_read_zip(csv_path):
+    """Read each mock csv.
 
+    Tests
+    -----
+    - Dataclass sets correct name.
+    - Dataframe in csv attribute has expected shape.
+    - Measurement cols is not empty.
+    - Flag cols is not empty.
+    - Ref cols is not empty.
+    - No overlap between measurement and ref cols
+    - No overlap between measurement and flag cols
+    - No overlap between ref and flag cols
     """
     tests = {}
     sensor_name = csv_path.name[:-4]
@@ -124,7 +136,12 @@ def test_download_zip(csv_path):
     ]
 )
 def test_bad_column_names(bad_kwarg):
-    """"""
+    """Test giving a bad argument for date or location col.
+
+    Tests
+    -----
+    - ValueError raised with expected message.
+    """
     csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
     match_str = (
         f"'BAD' is not present in {csv_path.name}. Expected a valid name for "
@@ -153,7 +170,15 @@ def test_bad_column_names(bad_kwarg):
     ["point_hash", "ref_point_hash"]
 )
 def test_protected_column_name(bad_kwarg, bad_name):
-    """"""
+    """Tests whether a protected column name is given for date or location col.
+
+    Honestly, this should never happen but better safe than sorry right?
+
+    Tests
+    -----
+    - ValueError is raised with expected message
+
+    """
     csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
     match_str = (
         f"{bad_kwarg} cannot be {bad_name}, this is a protected name."
@@ -175,7 +200,15 @@ def test_protected_column_name(bad_kwarg, bad_name):
 
 @pytest.mark.data
 def test_get_measurements():
-    """"""
+    """Tests whether the measurements are parsed from the file.
+
+    Tests
+    -----
+    - Correct number of columns in returned data.
+    - Expected columns are present.
+    - No duplicated point_hash values.
+    - No duplicated timestamp values.
+    """
     tests = {}
 
     csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
@@ -204,7 +237,15 @@ def test_get_measurements():
 
 @pytest.mark.data
 def test_get_values():
-    """"""
+    """Test getting all measurement values.
+
+    Tests
+    -----
+    - Correct number of columns.
+    - Expected columns present.
+    - No unexpected headers.
+    - No '.' characters in the headers.
+    """
     tests = {}
 
     csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
@@ -237,7 +278,15 @@ def test_get_values():
 
 @pytest.mark.data
 def test_get_flags():
-    """"""
+    """Test getting all measurement flags.
+
+    Tests
+    -----
+    - Correct number of columns.
+    - Expected columns present.
+    - No unexpected flags.
+    - No '.' characters in the flags.
+    """
     tests = {}
 
     csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
@@ -271,7 +320,14 @@ def test_get_flags():
 
 @pytest.mark.data
 def test_hashes_match():
-    """"""
+    """Test all hashes in flags and values match measurement hashes.
+
+    Tests
+    -----
+    - No hashes in flags that aren't in measurements.
+    - No hashes in values that aren't in measurements.
+
+    """
     tests = {}
 
     csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
@@ -303,7 +359,15 @@ def test_hashes_match():
 
 @pytest.mark.data
 def test_get_ref_measurements():
-    """"""
+    """Tests whether the reference measurements are parsed.
+
+    Tests
+    -----
+    - Correct number of columns in returned data.
+    - Expected columns are present.
+    - No duplicated point_hash values.
+    - No duplicated timestamp values.
+    """
     tests = {}
 
     csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
@@ -331,11 +395,29 @@ def test_get_ref_measurements():
 
 
 @pytest.mark.data
-def test_get_ref_values():
-    """"""
+@pytest.mark.parametrize(
+    "file",
+    [
+        ("Antwerp_402B00", "ANT"),
+        ("Antwerp_402B01", "ANT"),
+        ("Oslo_64A291", "OSL"),
+        ("Zagreb_64C52B", "ZAG"),
+    ]
+)
+def test_get_ref_values(file):
+    """Test getting all measurement values.
+
+    Tests
+    -----
+    - Correct number of columns.
+    - Expected columns present.
+    - No unexpected headers.
+    - No '.' characters in the headers.
+    """
+    filename, city_prefix = file
     tests = {}
 
-    csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
+    csv_path = Path(f"./tests/test_zipped/{filename}.csv")
     csv = pd.read_csv(csv_path)
     
     csv_dataclass = SensEURCityCSV.from_dataframe(
@@ -352,10 +434,19 @@ def test_get_ref_values():
     tests["No extra headers"] = len(
         set(df["header"].unique()) -
         {
-            "Ref_NO_ANT",
-            "Ref_NO2_ANT",
-            "Ref_O3_ANT",
-            "Ref_CO_ppm_ANT",
+            f"Ref_NO_{city_prefix}",
+            f"Ref_NO2_{city_prefix}",
+            f"Ref_O3_{city_prefix}",
+            f"Ref_CO_ppm_{city_prefix}",
+            f"Ref_PM2_5_{city_prefix}",
+            f"Ref_PM10_{city_prefix}",
+            f"Ref_PM2_5_Fidas_{city_prefix}",
+            f"Ref_PM4_Fidas_{city_prefix}",
+            f"Ref_PM10_Fidas_{city_prefix}",
+            f"Ref_PMtot_Fidas_{city_prefix}",
+            f"Ref_PM1_Fidas_{city_prefix}",
+            f"Ref_PM1_{city_prefix}",
+            "Ref_Press",
             "Ref_Lat",
             "Ref_Long",
             "Ref_Temp",
@@ -379,9 +470,18 @@ def test_get_ref_values():
 def test_colocation(
     colocation_dataset: tuple[
         pd.DataFrame,
-        tuple[dict[str, str|dt.datetime], ...]
+        tuple[tuple[str, str, dt.datetime, dt.datetime], ...]
     ]):
-    """"""
+    """Test the colocation dataset.
+
+    This is more complicated so uses a bespoke dataframe to test.
+
+    Tests
+    -----
+    - All co-located records returned are as expected.
+    - *The correct number being returned is technically also tested \
+    with the strict argument for zip set to True*
+    """
     tests = {}
     csv_dataclass = SensEURCityCSV.from_dataframe(
         name="Test",

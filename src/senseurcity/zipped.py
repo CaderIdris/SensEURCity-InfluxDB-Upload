@@ -23,7 +23,7 @@ logger = logging.getLogger(f'__main__.{__name__}')
 
 
 class Cities(Flag):
-    """"""
+    """Represent the three cities used in the study."""
     Antwerp = auto()
     Oslo = auto()
     Zagreb = auto()
@@ -63,9 +63,9 @@ def download_data(
 
 
 class SensEURCityZipFile(ZipFile):
-    """"""
+    """Work with the zip file containing the SensEURCity data."""
     def get_csvs(self, city: Cities) -> Generator[tuple[str, pd.DataFrame]]:
-        """"""
+        """Iteratively return the csvs of measurements for a single city."""
         if len(list(city)) > 1:
             raise ValueError("Multiple cities given. Please choose one.")
         elif city == Cities.Antwerp:

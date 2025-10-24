@@ -11,6 +11,7 @@ from senseurcity.zipped import Cities, download_data, SensEURCityZipFile
 
 @pytest.fixture(scope="session")
 def empty_mock_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Create an empty zip file."""
     zip_dir = tmp_path_factory.mktemp("empty_senseurcity_data")
     zip_path = zip_dir / "SensEURCity.zip"
     with zipfile.ZipFile(zip_path, "a") as zip_file:
@@ -19,6 +20,7 @@ def empty_mock_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 def mock_data_list():
+    """List of files and their contents for mock purposes."""
     return [
         ("a.txt", 'testing a'),
         ("b.txt", 'testing b'),
@@ -28,7 +30,7 @@ def mock_data_list():
     ]
 
 def make_mock_zip_file():
-    """"""
+    """Make a zip file with the data from `mock_data_list` function."""
     mock_data = mock_data_list()
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "a") as zip_file:
@@ -38,29 +40,41 @@ def make_mock_zip_file():
 
 
 class MockResponseValid:
+    """Mock class for a good response from an API."""
     @property
     def status_code(self):
+        """If the response is good, status_code should be 200."""
         return 200
 
     @property
     def content(self):
+        """Return the content from the `make_mock_zip_file` function."""
         mock_zip = make_mock_zip_file()
         return mock_zip
 
     def raise_for_status(self):
+        """The function being tested uses the `raise_for_status` function.
+
+        This raises an error if a non-200 status code is encountered. However,
+        this is a mock for a good response so we just return None.
+        """
         return None
 
 
 class MockResponseBad:
+    """Mock class for a bad response from an API."""
     @property
     def status_code(self):
+        """One of many bad status codes."""
         return 404
 
     @property
     def content(self):
+        """Won't return anything as it's bad."""
         return None
 
     def raise_for_status(self):
+        """If a bad status code is encountered, a HTTP error will be raised."""
         raise requests.exceptions.HTTPError(
             "404 Client Error"
         )
@@ -68,8 +82,18 @@ class MockResponseBad:
 
 @pytest.mark.zipfile
 def test_download_zip(monkeypatch: pytest.MonkeyPatch, data_path: Path):
-    """
+    """Test downloading a zip file using the `download_data` function.
 
+    This test does not download any actual data, it uses a mock response
+    object instead.
+
+    Tests
+    -----
+    - Is the file saved in the correct path.
+    - Does the file exist.
+    - Are the files all present?
+    - Are there the correct number of files?
+    - Do the files have content?
     """
     tests = {}
     zip_path = data_path / "test.zip"
@@ -108,8 +132,15 @@ def test_bad_download(
     data_path: Path,
     caplog: pytest.LogCaptureFixture,
 ):
-    """
+    """Test a failed download using the `download_data` function.
 
+    This test mocks a failed download without trying to download anything.
+
+    Tests
+    -----
+    - Nothing returned.
+    - Error is captured.
+    - The error is logged to the console.
     """
     tests = {}
     zip_path = data_path / "test.zip"
@@ -145,7 +176,12 @@ def test_senseurcity_zip_class(
     sec_mock_path: Path,
     valid_cities: tuple[Cities, int],
 ):
-    """"""
+    """Test the `SensEURCityZipFile` class on a mock zip file.
+
+    Tests
+    -----
+    - Correct number of csvs present for each city.
+    """
     tests = {}
     with SensEURCityZipFile(sec_mock_path) as sec_zip:
         dfs = list(sec_zip.get_csvs(valid_cities[0]))
@@ -163,6 +199,12 @@ def test_senseurcity_zip_class(
 def test_no_such_city_fail(
     sec_mock_path: Path
 ):
+    """Test giving an invalid value for `city` argument.
+
+    Tests
+    -----
+    - ValueError raised with expected message.
+    """
     with pytest.raises(
         ValueError,
         match="Unexpected city given. Please choose from"
@@ -175,6 +217,12 @@ def test_no_such_city_fail(
 def test_multiple_city_fail(
     sec_mock_path: Path
 ):
+    """Test giving multiple cities for `city` argument.
+
+    Tests
+    -----
+    - ValueError raised with expected message.
+    """
     with pytest.raises(
         ValueError,
         match="Multiple cities given. Please choose one."
@@ -187,7 +235,12 @@ def test_multiple_city_fail(
 def test_bad_zip(
         data_path: Path
 ):
-    """"""
+    """Test using a zip file with an unexpected structure.
+
+    Tests
+    -----
+    - FileNotFoundError raised with expected message.
+    """
     zip_path = data_path / "test.zip"
     with pytest.raises(
         FileNotFoundError,
@@ -211,7 +264,12 @@ def test_empty_zip(
     valid_cities: tuple[Cities, int],
     caplog: pytest.LogCaptureFixture
 ):
-    """"""
+    """Test an empty zip file with a dataset folder present.
+    
+    Tests
+    -----
+    - Warning is logged that no csv files could be found for each city.
+    """
     tests = {}
     with caplog.at_level(logging.WARNING):
         with SensEURCityZipFile(empty_mock_path) as sec_zip:
@@ -226,3 +284,4 @@ def test_empty_zip(
             print(f"{test}: {result}")
 
     assert all(tests.values())
+
