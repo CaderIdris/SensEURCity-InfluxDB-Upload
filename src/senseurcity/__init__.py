@@ -2,9 +2,10 @@
 .. include:: ../../README.md
 """
 
-from . import engine, orm, zipped
+from . import data, engine, orm, zipped
 
 __all__ = [
+    "data",
     "engine",
     "orm",
     "zipped",

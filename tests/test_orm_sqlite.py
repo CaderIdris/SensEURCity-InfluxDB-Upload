@@ -42,17 +42,20 @@ from senseurcity import engine
 
 @pytest.fixture(scope="session")
 def db_path(tmp_path_factory):
+    """Path to the test database."""
     return tmp_path_factory.mktemp("db") / "test_orm.db"
 
 
 @pytest.fixture(autouse=True)
 def sqlite_connection(db_path):
+    """SQLAlchemy connection to SQLite DB."""
     db_engine = engine.get_engine(f"sqlite+pysqlite:///{db_path}")
     orm._Base_V1.metadata.create_all(db_engine)
     return db_engine
 
 
 def get_table_cols(cursor, expected_cols, table_name):
+    """Check if expected columns are in table."""
     tests = {}
     cursor.execute(f"PRAGMA table_xinfo({table_name});")
     result = cursor.fetchall()
@@ -69,6 +72,7 @@ def get_table_cols(cursor, expected_cols, table_name):
 
 
 def get_foreign_keys(cursor, expected_keys, table_name):
+    """Check if expected foreign keys are associated with table."""
     tests = {}
     cursor.execute(f"PRAGMA foreign_key_list({table_name});")
     result = cursor.fetchall()
@@ -85,6 +89,7 @@ def get_foreign_keys(cursor, expected_keys, table_name):
 
 
 def get_indices(cursor, expected_indices, table_name):
+    """Check if expected indices are associated with table."""
     tests = {}
     cursor.execute(f"PRAGMA index_list({table_name});")
     result = cursor.fetchall()
@@ -105,6 +110,13 @@ def get_indices(cursor, expected_indices, table_name):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_create_tables(db_path):
+    """Test whether the tables were created.
+
+    Tests
+    -----
+    - Each expected table is in db.
+    - Correct number of tables.
+    """
     tests = {}
     expected_tables = (
         "dim_device",
@@ -138,6 +150,15 @@ def test_create_tables(db_path):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_dim_device_schema(db_path, sql_types):
+    """Test whether `dim_device` is set up correctly.
+
+    Tests
+    -----
+    - Each expected column present with proper type and configuration.
+    - Correct number of columns.
+    - Each expected index present.
+    - Correct number of indexes.
+    """
     table_name = "dim_device"
     expected_col_structure = {
         "key": (sql_types["SQLite"]["string"], 1, None, 1, 0),
@@ -175,6 +196,15 @@ def test_dim_device_schema(db_path, sql_types):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_dim_header_schema(db_path, sql_types):
+    """Test whether `dim_header` is set up correctly.
+
+    Tests
+    -----
+    - Each expected column present with proper type and configuration.
+    - Correct number of columns.
+    - Each expected index present.
+    - Correct number of indexes.
+    """
     table_name = "dim_header"
     expected_col_structure = {
         "header": (sql_types["SQLite"]["string"], 1, None, 1, 0),
@@ -209,6 +239,17 @@ def test_dim_header_schema(db_path, sql_types):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_fact_measurement_schema(db_path, sql_types):
+    """Test whether `fact_measurement` is set up correctly.
+
+    Tests
+    -----
+    - Each expected column present with proper type and configuration.
+    - Correct number of columns.
+    - Each expected foreign key present
+    - Correct number of foreign keys.
+    - Each expected index present.
+    - Correct number of indexes.
+    """
     table_name = "fact_measurement"
     expected_col_structure = {
         "point_hash": (sql_types["SQLite"]["string"], 1, None, 1, 0),
@@ -243,6 +284,15 @@ def test_fact_measurement_schema(db_path, sql_types):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_fact_value_schema(db_path, sql_types):
+    """Test whether `fact_value` is set up correctly.
+
+    Tests
+    -----
+    - Each expected column present with proper type and configuration.
+    - Correct number of columns.
+    - Each expected foreign key present
+    - Correct number of foreign keys.
+    """
     table_name = "fact_value"
     expected_col_structure = {
         "id": (sql_types["SQLite"]["int"], 1, None, 1, 0),
@@ -271,6 +321,15 @@ def test_fact_value_schema(db_path, sql_types):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_fact_flag_schema(db_path, sql_types):
+    """Test whether `fact_flag` is set up correctly.
+
+    Tests
+    -----
+    - Each expected column present with proper type and configuration.
+    - Correct number of columns.
+    - Each expected foreign key present
+    - Correct number of foreign keys.
+    """
     table_name = "fact_flag"
     expected_col_structure = {
         "id": (sql_types["SQLite"]["int"], 1, None, 1, 0),
@@ -298,6 +357,12 @@ def test_fact_flag_schema(db_path, sql_types):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_dim_device_good(sqlite_connection):
+    """Test whether `dim_device` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests = {}
     good_data = [
         {
@@ -400,7 +465,13 @@ def test_dim_device_good(sqlite_connection):
             },
     ]
 )
-def test_dim_lcs_dupe(sqlite_connection, dupe_data):
+def test_dim_device_dupe(sqlite_connection, dupe_data):
+    """Test whether `dim_device` rejects duped data in unique columns.
+
+    Tests
+    -----
+    - Unique constraint raises error when duplicate value added
+    """
     insert_statement = insert(orm.DimDevice)
     with sqlite_connection.connect() as conn:
         with pytest.raises(
@@ -419,7 +490,13 @@ def test_dim_lcs_dupe(sqlite_connection, dupe_data):
 @pytest.mark.parametrize(
     "col_to_null", ["code", "name", "short_name"]
 )
-def test_dim_lcs_null(sqlite_connection, col_to_null):
+def test_dim_device_null(sqlite_connection, col_to_null):
+    """Test whether `dim_device` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[str, str | dt.datetime | int | float | None] = {
         "key": "ANT_123457",
         "name": "Antwerp 4",
@@ -443,6 +520,12 @@ def test_dim_lcs_null(sqlite_connection, col_to_null):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_dim_header_good(sqlite_connection):
+    """Test whether `dim_header` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests = {}
     good_data = [
         {
@@ -483,6 +566,12 @@ def test_dim_header_good(sqlite_connection):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_dim_header_dupe(sqlite_connection):
+    """Test whether `dim_header` rejects duped data in unique columns.
+
+    Tests
+    -----
+    - Unique constraint raises error when duplicate value added
+    """
     dupe_data = {
         "header": "ox_test",
         "parameter": "ox",
@@ -512,6 +601,12 @@ def test_dim_header_dupe(sqlite_connection):
     ]
 )
 def test_dim_header_null(sqlite_connection, col_to_null):
+    """Test whether `dim_header` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -539,6 +634,12 @@ def test_dim_header_null(sqlite_connection, col_to_null):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_fact_measurement_good(sqlite_connection):
+    """Test whether `fact_measurement` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests = {}
     good_data = [
         {
@@ -575,6 +676,12 @@ def test_fact_measurement_good(sqlite_connection):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_fact_measurement_dupe(sqlite_connection):
+    """Test whether `fact_measurement` rejects duped data in unique columns.
+
+    Tests
+    -----
+    - Unique constraint raises error when duplicate value added
+    """
     dupe_data = {
             "point_hash": "test3",
             "timestamp": dt.datetime(2020, 1, 1),
@@ -601,6 +708,12 @@ def test_fact_measurement_dupe(sqlite_connection):
     ]
 )
 def test_fact_measurement_bad_foreign_key(sqlite_connection, bad_key):
+    """Test whether `fact_measurement` rejects invalid foreign keys.
+
+    Tests
+    -----
+    - Fkey constraint raises error when bad key added.
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -634,6 +747,12 @@ def test_fact_measurement_bad_foreign_key(sqlite_connection, bad_key):
     ]
 )
 def test_fact_measurement_null(sqlite_connection, col_to_null):
+    """Test whether `fact_measurement` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -660,6 +779,12 @@ def test_fact_measurement_null(sqlite_connection, col_to_null):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_fact_value_good(sqlite_connection):
+    """Test whether `fact_value` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests = {}
     good_data = [
         {
@@ -702,6 +827,12 @@ def test_fact_value_good(sqlite_connection):
     ]
 )
 def test_fact_value_bad_foreign_key(sqlite_connection, bad_key):
+    """Test whether `fact_value` rejects invalid foreign keys.
+
+    Tests
+    -----
+    - Fkey constraint raises error when bad key added.
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -735,6 +866,12 @@ def test_fact_value_bad_foreign_key(sqlite_connection, bad_key):
     ]
 )
 def test_fact_value_null(sqlite_connection, col_to_null):
+    """Test whether `fact_value` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -761,6 +898,12 @@ def test_fact_value_null(sqlite_connection, col_to_null):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_fact_flag_good(sqlite_connection):
+    """Test whether `fact_flag` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests = {}
     good_data = [
         {
@@ -802,6 +945,12 @@ def test_fact_flag_good(sqlite_connection):
     ]
 )
 def test_fact_flag_bad_foreign_key(sqlite_connection, bad_key):
+    """Test whether `fact_flag` rejects invalid foreign keys.
+
+    Tests
+    -----
+    - Fkey constraint raises error when bad key added.
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -835,6 +984,12 @@ def test_fact_flag_bad_foreign_key(sqlite_connection, bad_key):
     ]
 )
 def test_fact_flag_null(sqlite_connection, col_to_null):
+    """Test whether `fact_flag` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -861,6 +1016,12 @@ def test_fact_flag_null(sqlite_connection, col_to_null):
 @pytest.mark.sqlite
 @pytest.mark.base_v1
 def test_dim_colocation_good(sqlite_connection):
+    """Test whether `dim_colocation` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests = {}
     good_data = [
         {
@@ -906,6 +1067,12 @@ def test_dim_colocation_good(sqlite_connection):
     ]
 )
 def test_dim_colocation_bad_foreign_key(sqlite_connection, bad_key):
+    """Test whether `dim_colocation` rejects invalid foreign keys.
+
+    Tests
+    -----
+    - Fkey constraint raises error when bad key added.
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -941,6 +1108,12 @@ def test_dim_colocation_bad_foreign_key(sqlite_connection, bad_key):
     ]
 )
 def test_dim_colocation_null(sqlite_connection, col_to_null):
+    """Test whether `dim_colocation` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None

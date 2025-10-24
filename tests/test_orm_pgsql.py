@@ -60,6 +60,7 @@ except DockerException:
 
 @pytest.fixture(scope="session", autouse=True)
 def setup(request):
+    """Setup the postgres docker container."""
     postgres.start()
 
     def remove_container():
@@ -70,11 +71,13 @@ def setup(request):
 
 @pytest.fixture(scope="module")
 def db_url():
+    """Get the postgres connection url for the container."""
     return postgres.get_connection_url()
 
 
 @pytest.fixture(scope="module", autouse=True)
 def postgres_connection(db_url):
+    """SQLAlchemy connection to the postgres db."""
     db_engine = engine.get_engine(db_url)
     orm._Base_V1.metadata.create_all(db_engine)
     return db_engine
@@ -82,12 +85,14 @@ def postgres_connection(db_url):
 
 @pytest.fixture(scope="module", autouse=True)
 def postgres_connection_alt_schema(db_url):
+    """SQLAlchemy connection to the postgres db with an alternative schema."""
     db_engine = engine.get_engine(db_url, schema_name="test_alt_schema")
     orm._Base_V1.metadata.create_all(db_engine)
     return db_engine
 
 
 def get_table_cols(cursor, expected_cols, table_name):
+    """Check if expected columns are in table."""
     tests: dict[str, bool] = {}
     cursor.execute(
         f"""
@@ -114,6 +119,7 @@ def get_table_cols(cursor, expected_cols, table_name):
 
 
 def get_foreign_keys(cursor, expected_keys, table_name):
+    """Check if expected foreign keys are associated with table."""
     tests: dict[str, bool] = {}
     cursor.execute(
         # Taken from https://stackoverflow.com/a/1152321
@@ -148,6 +154,7 @@ def get_foreign_keys(cursor, expected_keys, table_name):
 
 
 def get_indices(cursor, expected_indices, table_name):
+    """Check if expected indices are associated with table."""
     tests: dict[str, bool] = {}
     cursor.execute(
         f"""
@@ -175,6 +182,13 @@ def get_indices(cursor, expected_indices, table_name):
 @pytest.mark.base_v1
 @pytest.mark.parametrize("schema_name", ["measurement", "test_alt_schema"])
 def test_create_tables(db_url, schema_name):
+    """Test whether the tables were created.
+
+    Tests
+    -----
+    - Each expected table is in db.
+    - Correct number of tables.
+    """
     tests: dict[str, bool] = {}
     expected_tables = (
         "dim_device",
@@ -215,6 +229,15 @@ def test_create_tables(db_url, schema_name):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_dim_device_schema(db_url, sql_types):
+    """Test whether `dim_device` is set up correctly.
+
+    Tests
+    -----
+    - Each expected column present with proper type and configuration.
+    - Correct number of columns.
+    - Each expected index present.
+    - Correct number of indexes.
+    """
     table_name = "dim_device"
     expected_col_structure = {
         "key": ('NO',sql_types["PostgreSQL"]["string"], None),
@@ -252,6 +275,15 @@ def test_dim_device_schema(db_url, sql_types):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_dim_header_schema(db_url, sql_types):
+    """Test whether `dim_header` is set up correctly.
+
+    Tests
+    -----
+    - Each expected column present with proper type and configuration.
+    - Correct number of columns.
+    - Each expected index present.
+    - Correct number of indexes.
+    """
     table_name = "dim_header"
     expected_col_structure = {
         "header": ('NO', sql_types["PostgreSQL"]["string"], None),
@@ -286,6 +318,17 @@ def test_dim_header_schema(db_url, sql_types):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_fact_measurement_schema(db_url, sql_types):
+    """Test whether `fact_measurement` is set up correctly.
+
+    Tests
+    -----
+    - Each expected column present with proper type and configuration.
+    - Correct number of columns.
+    - Each expected foreign key present
+    - Correct number of foreign keys.
+    - Each expected index present.
+    - Correct number of indexes.
+    """
     table_name = "fact_measurement"
     expected_col_structure = {
         "point_hash": ('NO', sql_types["PostgreSQL"]["string"], None),
@@ -319,6 +362,15 @@ def test_fact_measurement_schema(db_url, sql_types):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_fact_value_schema(db_url, sql_types):
+    """Test whether `fact_value` is set up correctly.
+
+    Tests
+    -----
+    - Each expected column present with proper type and configuration.
+    - Correct number of columns.
+    - Each expected foreign key present
+    - Correct number of foreign keys.
+    """
     table_name = "fact_value"
     expected_col_structure = {
         "id": ('NO', sql_types["PostgreSQL"]["int"], None),
@@ -354,6 +406,15 @@ def test_fact_value_schema(db_url, sql_types):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_fact_flag_schema(db_url, sql_types):
+    """Test whether `fact_flag` is set up correctly.
+
+    Tests
+    -----
+    - Each expected column present with proper type and configuration.
+    - Correct number of columns.
+    - Each expected foreign key present
+    - Correct number of foreign keys.
+    """
     table_name = "fact_flag"
     expected_col_structure = {
         "id": ('NO', sql_types["PostgreSQL"]["int"], None),
@@ -388,6 +449,12 @@ def test_fact_flag_schema(db_url, sql_types):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_dim_device_good(postgres_connection):
+    """Test whether `dim_device` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests: dict[str, bool] = {}
     good_data = [
         {
@@ -491,6 +558,12 @@ def test_dim_device_good(postgres_connection):
     ]
 )
 def test_dim_device_dupe(postgres_connection, dupe_data):
+    """Test whether `dim_device` rejects duped data in unique columns.
+
+    Tests
+    -----
+    - Unique constraint raises error when duplicate value added
+    """
     insert_statement = insert(orm.DimDevice)
     with postgres_connection.connect() as conn:
         with pytest.raises(
@@ -510,6 +583,12 @@ def test_dim_device_dupe(postgres_connection, dupe_data):
     "col_to_null", ["key", "name", "short_name"]
 )
 def test_dim_device_null(postgres_connection, col_to_null):
+    """Test whether `dim_device` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[str, str | dt.datetime | int | float | None] = {
         "key": "ANT_123457",
         "name": "Antwerp 4",
@@ -533,6 +612,12 @@ def test_dim_device_null(postgres_connection, col_to_null):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_dim_header_good(postgres_connection):
+    """Test whether `dim_header` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests: dict[str, bool] = {}
     good_data = [
         {
@@ -573,6 +658,12 @@ def test_dim_header_good(postgres_connection):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_dim_header_dupe(postgres_connection):
+    """Test whether `dim_header` rejects duped data in unique columns.
+
+    Tests
+    -----
+    - Unique constraint raises error when duplicate value added
+    """
     dupe_data = {
         "header": "ox_test",
         "parameter": "ox",
@@ -602,6 +693,12 @@ def test_dim_header_dupe(postgres_connection):
     ]
 )
 def test_dim_header_null(postgres_connection, col_to_null):
+    """Test whether `dim_header` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -629,6 +726,12 @@ def test_dim_header_null(postgres_connection, col_to_null):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_fact_measurement_good(postgres_connection):
+    """Test whether `fact_measurement` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests: dict[str, bool] = {}
     good_data = [
         {
@@ -665,6 +768,12 @@ def test_fact_measurement_good(postgres_connection):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_fact_measurement_dupe(postgres_connection):
+    """Test whether `fact_measurement` rejects duped data in unique columns.
+
+    Tests
+    -----
+    - Unique constraint raises error when duplicate value added
+    """
     dupe_data = {
         "point_hash": "test3",
         "timestamp": dt.datetime(2020, 1, 1),
@@ -691,6 +800,12 @@ def test_fact_measurement_dupe(postgres_connection):
     ]
 )
 def test_fact_measurement_bad_foreign_key(postgres_connection, bad_key):
+    """Test whether `fact_measurement` rejects invalid foreign keys.
+
+    Tests
+    -----
+    - Fkey constraint raises error when bad key added.
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -724,6 +839,12 @@ def test_fact_measurement_bad_foreign_key(postgres_connection, bad_key):
     ]
 )
 def test_fact_measurement_null(postgres_connection, col_to_null):
+    """Test whether `fact_measurement` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -750,6 +871,12 @@ def test_fact_measurement_null(postgres_connection, col_to_null):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_fact_value_good(postgres_connection):
+    """Test whether `fact_value` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests: dict[str, bool] = {}
     good_data = [
         {
@@ -792,6 +919,12 @@ def test_fact_value_good(postgres_connection):
     ]
 )
 def test_fact_value_bad_foreign_key(postgres_connection, bad_key):
+    """Test whether `fact_value` rejects invalid foreign keys.
+
+    Tests
+    -----
+    - Fkey constraint raises error when bad key added.
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -825,6 +958,12 @@ def test_fact_value_bad_foreign_key(postgres_connection, bad_key):
     ]
 )
 def test_fact_value_null(postgres_connection, col_to_null):
+    """Test whether `fact_value` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -851,6 +990,12 @@ def test_fact_value_null(postgres_connection, col_to_null):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_fact_flag_good(postgres_connection):
+    """Test whether `fact_flag` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests: dict[str, bool] = {}
     good_data = [
         {
@@ -892,6 +1037,12 @@ def test_fact_flag_good(postgres_connection):
     ]
 )
 def test_fact_flag_bad_foreign_key(postgres_connection, bad_key):
+    """Test whether `fact_flag` rejects invalid foreign keys.
+
+    Tests
+    -----
+    - Fkey constraint raises error when bad key added.
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -925,6 +1076,12 @@ def test_fact_flag_bad_foreign_key(postgres_connection, bad_key):
     ]
 )
 def test_fact_flag_null(postgres_connection, col_to_null):
+    """Test whether `fact_flag` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -951,6 +1108,12 @@ def test_fact_flag_null(postgres_connection, col_to_null):
 @pytest.mark.postgres
 @pytest.mark.base_v1
 def test_dim_colocation_good(postgres_connection):
+    """Test whether `dim_colocation` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
     tests: dict[str, bool] = {}
     good_data = [
         {
@@ -996,6 +1159,12 @@ def test_dim_colocation_good(postgres_connection):
     ]
 )
 def test_dim_colocation_bad_foreign_key(postgres_connection, bad_key):
+    """Test whether `dim_colocation` rejects invalid foreign keys.
+
+    Tests
+    -----
+    - Fkey constraint raises error when bad key added.
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
@@ -1031,6 +1200,12 @@ def test_dim_colocation_bad_foreign_key(postgres_connection, bad_key):
     ]
 )
 def test_dim_colocation_null(postgres_connection, col_to_null):
+    """Test whether `dim_colocation` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
     raw_data: dict[
         str,
         str | dt.datetime | int | float | dict[str, str] | None
