@@ -1,0 +1,746 @@
+[
+	{
+		"header": "latitude",
+		"Paramater": "Latitude",
+		"Unit": "°",
+		"Supplier": "SierraWireless",
+		"Sensor": "GTOP Ladybird 1",
+		"Type": "GPS"
+	},
+	{
+		"header": "longitude",
+		"Paramater": "Longitude",
+		"Unit": "°",
+		"Supplier": "SierraWireless",
+		"Sensor": "GTOP Ladybird 1",
+		"Type": "GPS"
+	},
+	{
+		"header": "altitude",
+		"Paramater": "Altitude",
+		"Unit": "m",
+		"Supplier": "SierraWireless",
+		"Sensor": "GTOP Ladybird 1",
+		"Type": "GPS"
+	},
+	{
+		"header": "Absolute_humidity",
+		"Paramater": "Absolute Humidity",
+		"Unit": "g/m³",
+		"Other": "Calculated using Clausius-Clapeyron Equation"
+	},
+	{
+		"header": "Td_deficit",
+		"Paramater": "Tdef",
+		"Unit": "°C",
+		"Other": "Difference between Temperature and Dew Point (Dew point from Magnus equation)"
+	},
+	{
+		"header": "BMP280",
+		"parameter": "P",
+		"unit": "hPa",
+		"Supplier": "Bosh Sensortech",
+		"Sensor": "BMP280",
+		"Type": "Piezo-resistive"
+	},
+	{
+		"header": "SHT31TE",
+		"parameter": "T (External)",
+		"unit": "°C",
+		"Supplier": "Sensirion",
+		"Sensor": "SHT31",
+		"Type": "Semi-Conductor"
+	},
+	{
+		"header": "SHT31TI",
+		"parameter": "T (Internal)",
+		"unit": "°C",
+		"Supplier": "Sensirion",
+		"Sensor": "SHT31",
+		"Type": "Semi-Conductor"
+	},
+	{
+		"header": "SHT31HE",
+		"parameter": "RH (External)",
+		"unit": "%",
+		"Supplier": "Sensirion",
+		"Sensor": "SHT31",
+		"Type": "Semi-Conductor"
+	},
+	{
+		"header": "SHT31HI",
+		"parameter": "RH (Internal)",
+		"unit": "%",
+		"Supplier": "Sensirion",
+		"Sensor": "SHT31",
+		"Type": "Semi-Conductor"
+	},
+	{
+		"header": "D300",
+		"parameter": "CO2",
+		"unit": "ppm",
+		"Supplier": "ELT",
+		"Sensor": "D-300-3V",
+		"Type": "NDIR"
+	},
+	{
+		"header": "CO_A4_P1",
+		"parameter": "CO",
+		"unit": "nA",
+		"Supplier": "Alphasense",
+		"Sensor": "CO-A4",
+		"Type": "Electrochemical"
+	},
+	{
+		"header": "NO_B4_P1",
+		"parameter": "NO",
+		"unit": "nA",
+		"Supplier": "Alphasense",
+		"Sensor": "NO-B4",
+		"Type": "Electrochemical"
+	},
+	{
+		"header": "OX_A431_P1",
+		"parameter": "Ox",
+		"unit": "nA",
+		"Supplier": "Alphasense",
+		"Sensor": "OX-A431",
+		"Type": "Electrochemical"
+	},
+	{
+		"header": "OPCN3PM1",
+		"parameter": "PM1",
+		"unit": "µg/m³",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter"
+	},
+	{
+		"header": "OPCN3PM25",
+		"parameter": "PM2.5",
+		"unit": "µg/m³",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter"
+	},
+	{
+		"header": "OPCN3PM10",
+		"parameter": "PM10",
+		"unit": "µg/m³",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter"
+	},
+	{
+		"header": "OPCN3Bin0",
+		"parameter": "OPC Bin 0",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 0.35,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin1",
+		"parameter": "OPC Bin 1",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 0.46,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin2",
+		"parameter": "OPC Bin 2",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 0.66,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin3",
+		"parameter": "OPC Bin 3",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 1.0,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin4",
+		"parameter": "OPC Bin 4",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 1.3,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin5",
+		"parameter": "OPC Bin 5",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 1.7,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin6",
+		"parameter": "OPC Bin 6",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 2.3,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin7",
+		"parameter": "OPC Bin 7",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 3.0,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin8",
+		"parameter": "OPC Bin 8",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 4.0,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin9",
+		"parameter": "OPC Bin 9",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 5.2,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin10",
+		"parameter": "OPC Bin 10",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 6.5,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin11",
+		"parameter": "OPC Bin 11",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 8.0,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin12",
+		"parameter": "OPC Bin 12",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 10,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin13",
+		"parameter": "OPC Bin 13",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 12,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin14",
+		"parameter": "OPC Bin 14",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 14,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin15",
+		"parameter": "OPC Bin 15",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 16,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin16",
+		"parameter": "OPC Bin 16",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 18,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin17",
+		"parameter": "OPC Bin 17",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 20,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin18",
+		"parameter": "OPC Bin 18",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 22,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin19",
+		"parameter": "OPC Bin 19",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 25,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin20",
+		"parameter": "OPC Bin 20",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 28,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin21",
+		"parameter": "OPC Bin 21",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 31,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin22",
+		"parameter": "OPC Bin 22",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 34,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "OPCN3Bin23",
+		"parameter": "OPC Bin 23",
+		"unit": "counts/mL",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter",
+		"Diameter": 37,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "5301CAT",
+		"parameter": "PM1 (ATM)",
+		"unit": "µg/m³",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer"
+	},
+	{
+		"header": "5325CAT",
+		"parameter": "PM2.5 (ATM)",
+		"unit": "µg/m³",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer"
+	},
+	{
+		"header": "5310CAT",
+		"parameter": "PM10 (ATM)",
+		"unit": "µg/m³",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer"
+	},
+	{
+		"header": "5301CST",
+		"parameter": "PM1 (CF=1)",
+		"unit": "µg/m³",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer"
+	},
+	{
+		"header": "5325CST",
+		"parameter": "PM2.5 (CF=1)",
+		"unit": "µg/m³",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer"
+	},
+	{
+		"header": "5310CST",
+		"parameter": "PM10 (CF=1)",
+		"unit": "µg/m³",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer"
+	},
+	{
+		"header": "53PT003",
+		"parameter": "Nephelometer Bin 0",
+		"unit": "counts/dL",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer",
+		"Diameter": 0.3,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "53PT005",
+		"parameter": "Nephelometer Bin 1",
+		"unit": "counts/dL",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer",
+		"Diameter": 0.5,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "53PT010",
+		"parameter": "Nephelometer Bin 2",
+		"unit": "counts/dL",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer",
+		"Diameter": 1.0,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "53PT025",
+		"parameter": "Nephelometer Bin 3",
+		"unit": "counts/dL",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer",
+		"Diameter": 2.5,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "53PT050",
+		"parameter": "Nephelometer Bin 4",
+		"unit": "counts/dL",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer",
+		"Diameter": 5,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "53PT100",
+		"parameter": "Nephelometer Bin 5",
+		"unit": "counts/dL",
+		"Supplier": "Plantower",
+		"Sensor": "PMS5003",
+		"Type": "Nephelometer",
+		"Diameter": 10,
+		"Diameter Unit": "µg"
+	},
+	{
+		"header": "Ref_Long",
+		"parameter": "Longitude",
+		"unit": "°"
+	},
+	{
+		"header": "Ref_Lat",
+		"parameter": "Latitude",
+		"unit": "°"
+	},
+	{
+		"header": "Ref_Press",
+		"parameter": "P",
+		"unit": "hPa"
+	},
+	{
+		"header": "Ref_RH",
+		"parameter": "RH",
+		"unit": "%"
+	},
+	{
+		"header": "Ref_Temp",
+		"parameter": "T",
+		"unit": "°C"
+	},
+	{
+		"header": "Ref_PM10_ISP",
+		"parameter": "PM10",
+		"unit": "µg/m³",
+		"Sensor": "Thermo Environment TEOM 1405 FDMS",
+		"Type": "Oscillating Microbalance"
+	},
+	{
+		"header": "Ref_NO_ISP",
+		"parameter": "NO",
+		"unit": "ppb",
+		"Sensor": "Thermo Environment 42i",
+		"Type": "Chemiluminescence"
+	},
+	{
+		"header": "Ref_NO2_ISP",
+		"parameter": "NO2",
+		"unit": "ppb",
+		"Sensor": "Aerodyne CAPSNO2",
+		"Type": "CAPS"
+	},
+	{
+		"header": "Ref_CO_ppm_ISP",
+		"parameter": "CO",
+		"unit": "ppm",
+		"Sensor": "Horiba APMA - 370",
+		"Type": "NDIR Gas-Filter Correlation Spectroscopy"
+	},
+	{
+		"header": "Ref_O3_ISP",
+		"parameter": "O3",
+		"unit": "ppb",
+		"Sensor": "Thermo Environment 49i",
+		"Type": "Ultraviolet Photometry"
+	},
+	{
+		"header": "Ref_CO2_ISP",
+		"parameter": "CO2",
+		"unit": "ppm",
+		"Sensor": "Picarro G2401",
+		"Type": "WS-CRDS",
+		"Other": "Sampled at 30m height"
+	},
+	{
+		"header": "Ref_PM1_ANT",
+		"parameter": "PM1",
+		"unit": "µg/m³",
+		"Sensor": "Palas Fidas 200",
+		"Type": "OPC"
+	},
+	{
+		"header": "Ref_PM2.5_ANT",
+		"parameter": "PM2.5",
+		"unit": "µg/m³",
+		"Sensor": "Palas Fidas 200",
+		"Type": "OPC"
+	},
+	{
+		"header": "Ref_PM10_ANT",
+		"parameter": "PM10",
+		"unit": "µg/m³",
+		"Sensor": "Palas Fidas 200",
+		"Type": "OPC"
+	},
+	{
+		"header": "Ref_NO_ANT",
+		"parameter": "NO",
+		"unit": "ppb",
+		"Sensor": "Thermo Environment 42i",
+		"Type": "Chemiluminescence"
+	},
+	{
+		"header": "Ref_NO2_ANT",
+		"parameter": "NO2",
+		"unit": "ppb",
+		"Sensor": "Thermo Environment 42i",
+		"Type": "Chemiluminescence"
+	},
+	{
+		"header": "Ref_CO_ppm_ANT",
+		"parameter": "CO",
+		"unit": "ppm",
+		"Sensor": "Teledyne API T300",
+		"Type": "Chemiluminescence"
+	},
+	{
+		"header": "Ref_O3_ANT",
+		"parameter": "O3",
+		"unit": "ppb",
+		"Sensor": "Teledyne API T300",
+		"Type": "Ultraviolet Photometry"
+	},
+	{
+		"header": "Ref_CO2_ANT",
+		"parameter": "CO2",
+		"unit": "ppm",
+		"Sensor": "Sick Sidor",
+		"Type": "NDIR"
+	},
+	{
+		"header": "Ref_PM1_OSL",
+		"parameter": "PM1",
+		"unit": "µg/m³",
+		"Sensor": "Palas Fidas 200",
+		"Type": "Light Scattering"
+	},
+	{
+		"header": "Ref_PM2.5_OSL",
+		"parameter": "PM2.5",
+		"unit": "µg/m³",
+		"Sensor": "Palas Fidas 200",
+		"Type": "Light Scattering"
+	},
+	{
+		"header": "Ref_PM10_OSL",
+		"parameter": "PM10",
+		"unit": "µg/m³",
+		"Sensor": "Palas Fidas 200",
+		"Type": "Light Scattering"
+	},
+	{
+		"header": "Ref_PM1_Fidas_OSL",
+		"parameter": "PM1 (Fidas)",
+		"unit": "µg/m³",
+		"Sensor": "Palas Fidas 200",
+		"Type": "Light Scattering"
+	},
+	{
+		"header": "Ref_PM2.5_Fidas_OSL",
+		"parameter": "PM2.5 (Fidas)",
+		"unit": "µg/m³",
+		"Sensor": "Palas Fidas 200",
+		"Type": "Light Scattering"
+	},
+	{
+		"header": "Ref_PM2.5_TEOM_OSL",
+		"parameter": "PM2.5 (TEOM)",
+		"unit": "µg/m³",
+		"Sensor": "Thermo TEOM 1405 FDMS",
+		"Type": "Oscillating Microbalance"
+	},
+	{
+		"header": "Ref_PM4_Fidas_OSL",
+		"parameter": "PM4 (Fidas)",
+		"unit": "µg/m³",
+		"Sensor": "Palas Fidas 200",
+		"Type": "Light Scattering"
+	},
+	{
+		"header": "Ref_PM10_Fidas_OSL",
+		"parameter": "PM10 (Fidas)",
+		"unit": "µg/m³",
+		"Sensor": "Palas Fidas 200",
+		"Type": "Light Scattering"
+	},
+	{
+		"header": "Ref_PM10_TEOM_OSL",
+		"parameter": "PM10 (TEOM)",
+		"unit": "µg/m³",
+		"Sensor": "Thermo TEOM 1405 FDMS",
+		"Type": "Oscillating Microbalance"
+	},
+	{
+		"header": "Ref_PMtot_Fidas_OSL",
+		"parameter": "PMtot (Fidas)",
+		"unit": "µg/m³",
+		"Sensor": "Palas Fidas 200",
+		"Type": "Light Scattering"
+	},
+	{
+		"header": "Ref_NO_OSL",
+		"parameter": "NO",
+		"unit": "µg/m³",
+		"Sensor": "Opsis Serinus 40",
+		"Type": "Chemiluminescence"
+	},
+	{
+		"header": "Ref_NO2_OSL",
+		"parameter": "NO2",
+		"unit": "µg/m³",
+		"Sensor": "Opsis Serinus 40",
+		"Type": "Chemiluminescence"
+	},
+	{
+		"header": "Ref_CO_OSL",
+		"parameter": "CO",
+		"unit": "ppm",
+		"Sensor": "Opsis Serinus 30",
+		"Type": "NDIR Spectroscopy"
+	},
+	{
+		"header": "Ref_O3_OSL",
+		"parameter": "O3",
+		"unit": "ppb",
+		"Sensor": "Teledyne API T400",
+		"Type": "Ultraviolet Photometry"
+	},
+	{
+		"header": "Ref_PM2.5_ZAG",
+		"parameter": "PM2.5",
+		"unit": "µg/m³",
+		"Sensor": "Sven Leckel SEQ 47/50-CD",
+		"Type": "Gravimetry"
+	},
+	{
+		"header": "Ref_PM10_ZAG",
+		"parameter": "PM10",
+		"unit": "µg/m³",
+		"Sensor": "Sven Leckel SEQ 47/50-CD",
+		"Type": "Gravimetry"
+	},
+	{
+		"header": "Ref_NO_ZAG",
+		"parameter": "NO",
+		"unit": "µg/m³",
+		"Sensor": "Horiba APNA - 370",
+		"Type": "Chemiluminescence"
+	},
+	{
+		"header": "Ref_NO2_ZAG",
+		"parameter": "NO2",
+		"unit": "µg/m³",
+		"Sensor": "Horiba APNA - 370",
+		"Type": "Chemiluminescence"
+	},
+	{
+		"header": "Ref_CO_ZAG",
+		"parameter": "CO",
+		"unit": "µg/m³",
+		"Sensor": "Horiba APMA - 370",
+		"Type": "NDIR Spectroscopy"
+	},
+	{
+		"header": "Ref_O3_ZAG",
+		"parameter": "O3",
+		"unit": "µg/m³",
+		"Sensor": "Horiba APOA - 370",
+		"Type": "NDUV"
+	}
+]
