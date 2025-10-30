@@ -1,0 +1,5 @@
+[
+	{"unit_in": "ppb", "unit_out": "µg/m³", "parameter": "NO", "scale": 1.9125},
+	{"unit_in": "ppb", "unit_out": "µg/m³", "parameter": "NO2", "scale": 1.9125},
+	{"unit_in": "ppb", "unit_out": "µg/m³", "parameter": "O3", "scale": 1.9957}
+]

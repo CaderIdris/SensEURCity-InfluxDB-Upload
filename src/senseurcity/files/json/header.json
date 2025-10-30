@@ -1,38 +1,38 @@
 [
 	{
 		"header": "latitude",
-		"Paramater": "Latitude",
-		"Unit": "°",
+		"parameter": "Latitude",
+		"unit": "°",
 		"Supplier": "SierraWireless",
 		"Sensor": "GTOP Ladybird 1",
 		"Type": "GPS"
 	},
 	{
 		"header": "longitude",
-		"Paramater": "Longitude",
-		"Unit": "°",
+		"parameter": "Longitude",
+		"unit": "°",
 		"Supplier": "SierraWireless",
 		"Sensor": "GTOP Ladybird 1",
 		"Type": "GPS"
 	},
 	{
 		"header": "altitude",
-		"Paramater": "Altitude",
-		"Unit": "m",
+		"parameter": "Altitude",
+		"unit": "m",
 		"Supplier": "SierraWireless",
 		"Sensor": "GTOP Ladybird 1",
 		"Type": "GPS"
 	},
 	{
 		"header": "Absolute_humidity",
-		"Paramater": "Absolute Humidity",
-		"Unit": "g/m³",
+		"parameter": "Absolute Humidity",
+		"unit": "g/m³",
 		"Other": "Calculated using Clausius-Clapeyron Equation"
 	},
 	{
 		"header": "Td_deficit",
-		"Paramater": "Tdef",
-		"Unit": "°C",
+		"parameter": "Tdef",
+		"unit": "°C",
 		"Other": "Difference between Temperature and Dew Point (Dew point from Magnus equation)"
 	},
 	{
@@ -139,7 +139,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 0.35,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin1",
@@ -149,7 +149,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 0.46,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin2",
@@ -159,7 +159,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 0.66,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin3",
@@ -169,7 +169,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 1.0,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin4",
@@ -179,7 +179,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 1.3,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin5",
@@ -189,7 +189,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 1.7,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin6",
@@ -199,7 +199,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 2.3,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin7",
@@ -209,7 +209,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 3.0,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin8",
@@ -219,7 +219,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 4.0,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin9",
@@ -229,7 +229,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 5.2,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin10",
@@ -239,7 +239,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 6.5,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin11",
@@ -249,7 +249,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 8.0,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin12",
@@ -259,7 +259,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 10,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin13",
@@ -269,7 +269,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 12,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin14",
@@ -279,7 +279,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 14,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin15",
@@ -289,7 +289,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 16,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin16",
@@ -299,7 +299,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 18,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin17",
@@ -309,7 +309,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 20,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin18",
@@ -319,7 +319,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 22,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin19",
@@ -329,7 +329,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 25,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin20",
@@ -339,7 +339,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 28,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin21",
@@ -349,7 +349,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 31,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin22",
@@ -359,7 +359,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 34,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "OPCN3Bin23",
@@ -369,7 +369,7 @@
 		"Sensor": "OPC-N3",
 		"Type": "Optical Particle Counter",
 		"Diameter": 37,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "5301CAT",
@@ -427,7 +427,7 @@
 		"Sensor": "PMS5003",
 		"Type": "Nephelometer",
 		"Diameter": 0.3,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "53PT005",
@@ -437,7 +437,7 @@
 		"Sensor": "PMS5003",
 		"Type": "Nephelometer",
 		"Diameter": 0.5,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "53PT010",
@@ -447,7 +447,7 @@
 		"Sensor": "PMS5003",
 		"Type": "Nephelometer",
 		"Diameter": 1.0,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "53PT025",
@@ -457,7 +457,7 @@
 		"Sensor": "PMS5003",
 		"Type": "Nephelometer",
 		"Diameter": 2.5,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "53PT050",
@@ -467,7 +467,7 @@
 		"Sensor": "PMS5003",
 		"Type": "Nephelometer",
 		"Diameter": 5,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "53PT100",
@@ -477,7 +477,7 @@
 		"Sensor": "PMS5003",
 		"Type": "Nephelometer",
 		"Diameter": 10,
-		"Diameter Unit": "µg"
+		"Diameter unit": "µg"
 	},
 	{
 		"header": "Ref_Long",

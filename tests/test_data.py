@@ -5,7 +5,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from senseurcity.data import SensEURCityCSV
+from senseurcity.data import (
+    SensEURCityCSV,
+    get_device_records,
+    get_header_records,
+    get_unit_conversion_records
+)
 
 
 def file_paths() -> list[Path]:
@@ -453,7 +458,6 @@ def test_get_ref_values(file):
             "Ref_RH"
         }
     ) == 0
-    print(df)
 
     tests["No . in headers"] = (
             not df["header"].str.contains(".", regex=False).any()
@@ -509,3 +513,63 @@ def test_colocation(
 
     assert all(tests.values())
 
+
+@pytest.mark.data
+def test_import_headers():
+    """Test importing the headers json."""
+    tests = {}
+    headers = list(get_header_records())
+    for i, header in enumerate(headers, start=1):
+        tests[f"header in {i}"] = "header" in header
+        tests[f"parameter in {i}"] = "parameter" in header
+        tests[f"unit in {i}"] = "unit" in header
+        tests[f"other in {i}"] = "other" in header 
+
+    tests["Correct number of headers"] = len(headers) == 92
+
+    for test, result in tests.items():
+        if not result:
+            print(f"{test}: {result}")
+
+    assert all(tests.values())
+
+
+@pytest.mark.data
+def test_import_devices():
+    """Test importing the devices json."""
+    tests = {}
+    devices = list(get_device_records())
+    for i, device in enumerate(devices, start=1):
+        tests[f"key in {i}"] = "key" in device
+        tests[f"name in {i}"] = "name" in device
+        tests[f"short_name in {i}"] = "short_name" in device
+        tests[f"dataset in {i}"] = "dataset" in device
+        tests[f"reference in {i}"] = "reference" in device
+
+    tests["Correct number of devices"] = len(devices) == 109
+
+    for test, result in tests.items():
+        if not result:
+            print(f"{test}: {result}")
+
+    assert all(tests.values())
+
+
+@pytest.mark.data
+def test_import_unit_conversion():
+    """Test importing the unit conversion json."""
+    tests = {}
+    conversions = list(get_unit_conversion_records())
+    for i, conversion in enumerate(conversions, start=1):
+        tests[f"unit_in in {i}"] = "unit_in" in conversion
+        tests[f"unit_out in {i}"] = "unit_out" in conversion
+        tests[f"parameter in {i}"] = "parameter" in conversion
+        tests[f"scale in {i}"] = "scale" in conversion
+
+    tests["Correct number of devices"] = len(conversions) == 3
+
+    for test, result in tests.items():
+        if not result:
+            print(f"{test}: {result}")
+
+    assert all(tests.values())

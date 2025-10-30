@@ -6,7 +6,7 @@ import zipfile
 import pytest
 import requests
 
-from senseurcity.zipped import Cities, download_data, SensEURCityZipFile
+from senseurcity.zipped import Cities, download_data, get_csvs
 
 
 @pytest.fixture(scope="session")
@@ -15,7 +15,19 @@ def empty_mock_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
     zip_dir = tmp_path_factory.mktemp("empty_senseurcity_data")
     zip_path = zip_dir / "SensEURCity.zip"
     with zipfile.ZipFile(zip_path, "a") as zip_file:
-        zip_file.mkdir("dataset")
+        zip_file.mkdir("senseurcity_data_v01/")
+        zip_file.mkdir("senseurcity_data_v01/dataset")
+    return zip_path
+
+
+@pytest.fixture(scope="session")
+def double_dataset_mock_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Create an empty zip file."""
+    zip_dir = tmp_path_factory.mktemp("empty_senseurcity_data")
+    zip_path = zip_dir / "SensEURCity.zip"
+    with zipfile.ZipFile(zip_path, "a") as zip_file:
+        zip_file.mkdir("senseurcity_data_v01/")
+        zip_file.mkdir("senseurcity_data_v02/")
     return zip_path
 
 
@@ -127,6 +139,39 @@ def test_download_zip(monkeypatch: pytest.MonkeyPatch, data_path: Path):
 
 
 @pytest.mark.zipfile
+def test_overwrite_protection(
+    monkeypatch: pytest.MonkeyPatch,
+    empty_mock_path: Path,
+    caplog: pytest.LogCaptureFixture,
+):
+    """Test overwrite protection.
+
+    Tests
+    -----
+    - Is the file skipped?
+    """
+    tests = {}
+
+    def mock_get(*args, **kwargs):
+        return MockResponseValid()
+    
+    monkeypatch.setattr(requests, "get", mock_get)
+
+    with caplog.at_level(logging.DEBUG):
+        _ = download_data("http://fakeurl", empty_mock_path)
+
+    tests["Skip is logged"] = (
+        "File already exists, skipping download." in caplog.text
+    )
+
+    for test, result in tests.items():
+        if not result:
+            print(f"{test}: {result}")
+
+    assert all(tests.values())
+
+
+@pytest.mark.zipfile
 def test_bad_download(
     monkeypatch: pytest.MonkeyPatch,
     data_path: Path,
@@ -151,7 +196,7 @@ def test_bad_download(
     monkeypatch.setattr(requests, "get", mock_get)
 
     with caplog.at_level(logging.ERROR):
-        res = download_data("http://fakeurl", zip_path)
+        res = download_data("http://fakeurl", zip_path, ignore_file_exists=True)
 
     tests["Nothing returns"] = res is None
     tests["Error is logged"] = "HTTP Error: 404 Client Error" in caplog.text
@@ -176,15 +221,15 @@ def test_senseurcity_zip_class(
     sec_mock_path: Path,
     valid_cities: tuple[Cities, int],
 ):
-    """Test the `SensEURCityZipFile` class on a mock zip file.
+    """Test the `ZipFile` class on a mock zip file.
 
     Tests
     -----
     - Correct number of csvs present for each city.
     """
     tests = {}
-    with SensEURCityZipFile(sec_mock_path) as sec_zip:
-        dfs = list(sec_zip.get_csvs(valid_cities[0]))
+    with zipfile.ZipFile(sec_mock_path) as sec_zip:
+        dfs = list(get_csvs(sec_zip, valid_cities[0]))
         print(dfs)
         tests["Correct number of csvs"] = len(dfs) == valid_cities[1]
 
@@ -209,8 +254,8 @@ def test_no_such_city_fail(
         ValueError,
         match="Unexpected city given. Please choose from"
     ):
-        with SensEURCityZipFile(sec_mock_path) as sec_zip:
-            next(sec_zip.get_csvs(Cities(0)))
+        with zipfile.ZipFile(sec_mock_path) as sec_zip:
+            next(get_csvs(sec_zip, Cities(0)))
 
 
 @pytest.mark.zipfile
@@ -227,8 +272,8 @@ def test_multiple_city_fail(
         ValueError,
         match="Multiple cities given. Please choose one."
     ):
-        with SensEURCityZipFile(sec_mock_path) as sec_zip:
-            next(sec_zip.get_csvs(Cities.Antwerp | Cities.Zagreb))
+        with zipfile.ZipFile(sec_mock_path) as sec_zip:
+            next(get_csvs(sec_zip, Cities.Antwerp | Cities.Zagreb))
 
 
 @pytest.mark.zipfile
@@ -246,8 +291,8 @@ def test_bad_zip(
         FileNotFoundError,
         match="'dataset' folder missing from provided zip file. "
     ):
-        with SensEURCityZipFile(zip_path) as sec_zip:
-            next(sec_zip.get_csvs(Cities.Antwerp))
+        with zipfile.ZipFile(zip_path) as sec_zip:
+            next(get_csvs(sec_zip, Cities.Antwerp))
 
 
 @pytest.mark.zipfile
@@ -272,8 +317,8 @@ def test_empty_zip(
     """
     tests = {}
     with caplog.at_level(logging.WARNING):
-        with SensEURCityZipFile(empty_mock_path) as sec_zip:
-            list(sec_zip.get_csvs(valid_cities[0]))
+        with zipfile.ZipFile(empty_mock_path) as sec_zip:
+            list(get_csvs(sec_zip, valid_cities[0]))
 
     tests["Issue is logged"] = (
         f"No csv files found for {valid_cities[1]}" in caplog.text
@@ -285,3 +330,14 @@ def test_empty_zip(
 
     assert all(tests.values())
 
+
+def test_double_dataset_zip(
+    double_dataset_mock_path: Path
+):
+    """"""
+    with pytest.raises(
+        ValueError,
+        match="Zipfile contains multiple datasets: "
+    ):
+        with zipfile.ZipFile(double_dataset_mock_path) as sec_zip:
+            list(get_csvs(sec_zip, Cities.Antwerp))
