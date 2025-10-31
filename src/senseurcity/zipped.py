@@ -140,4 +140,4 @@ def get_csvs(
     for csv_file in zip_path.glob(prefix):
         with csv_file.open("r") as csv:
             _logger.debug("Returning %s", csv.name)
-            yield (csv_file.name[:-4], pd.read_csv(csv, low_memory=False))
+            yield (csv_file.stem, pd.read_csv(csv, low_memory=False))

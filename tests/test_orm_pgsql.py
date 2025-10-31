@@ -87,7 +87,7 @@ def postgres_connection(db_url):
 def postgres_connection_alt_schema(db_url):
     """SQLAlchemy connection to the postgres db with an alternative schema."""
     db_engine = engine.get_engine(db_url, schema_name="test_alt_schema")
-    orm._Base_V1.metadata.create_all(db_engine)
+    orm.create_tables(db_engine)
     return db_engine
 
 
@@ -194,6 +194,7 @@ def test_create_tables(db_url, schema_name):
         "dim_device",
         "dim_header",
         "dim_colocation",
+        "dim_unit_conversion",
         "fact_measurement",
         "fact_value",
         "fact_flag"
@@ -250,7 +251,7 @@ def test_dim_device_schema(db_url, sql_types):
     expected_indices = (
         "dim_device_pkey",
         "dim_device_name_key",
-        "dim_device_short_name_key"
+        "dim_device_short_name"
     )
 
     with psycopg.connect(db_url.replace("+psycopg", "")) as conn:
@@ -339,7 +340,8 @@ def test_fact_measurement_schema(db_url, sql_types):
         "fact_measurement_device_key_fkey": ('fact_measurement', 'device_key', 'dim_device', 'key'),
     }
     expected_indices = [
-        "fact_measurement_pkey"
+        "fact_measurement_pkey",
+        "fact_measurement_timestamp_device_key_key"
     ]
 
     with psycopg.connect(db_url.replace("+psycopg", "")) as conn:
@@ -379,7 +381,8 @@ def test_fact_value_schema(db_url, sql_types):
         "value": ('NO', sql_types["PostgreSQL"]["float"], None)
     }
     expected_indices = [
-        "dim_value_pkey"
+        "fact_value_pkey",
+        "fact_value_point_hash_header_key",
     ]
     expected_foreign_keys = {
         "fact_value_point_hash_fkey": ("fact_value", "point_hash", "fact_measurement", "point_hash"),
@@ -423,7 +426,8 @@ def test_fact_flag_schema(db_url, sql_types):
         "value": ('NO', sql_types["PostgreSQL"]["string"], None)
     }
     expected_indices = [
-        "dim_flag_pkey"
+        "dim_flag_pkey",
+        "fact_value_point_hash_flag_key",
     ]
     expected_foreign_keys = {
         "fact_flag_point_hash_fkey": ("fact_flag", "point_hash", "fact_measurement", "point_hash")
@@ -711,6 +715,120 @@ def test_dim_header_null(postgres_connection, col_to_null):
     raw_data[col_to_null] = None
 
     insert_statement = insert(orm.DimHeader)
+    with postgres_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates not-null constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_dim_unit_conversion_good(postgres_connection):
+    """Test whether `dim_unit_conversion` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
+    tests = {}
+    good_data = [
+        {
+            "unit_in": "ppm",
+            "unit_out": "ppb",
+            "parameter": "Test",
+            "scale": 0.77
+        },
+        {
+            "unit_in": "ppm",
+            "unit_out": "ppb",
+            "parameter": "Test2",
+            "scale": 0.66
+        },
+        {
+            "unit_in": "ppb",
+            "unit_out": "ppm",
+            "parameter": "Test",
+            "scale": 0.55
+        },
+    ]
+    expected_pks = ((None,), (None,), (None,))
+
+    insert_statement = insert(orm.DimUnitConversion)
+    with postgres_connection.connect() as conn:
+        result = conn.execute(
+            insert_statement,
+            good_data
+        )
+        pks = tuple(result.inserted_primary_key_rows)
+        conn.commit()
+    tests["Rows inserted"] = pks == expected_pks
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
+def test_dim_unit_conversion_dupe(postgres_connection):
+    """Test whether `dim_unit_conversion` rejects duped data in unique columns.
+
+    Tests
+    -----
+    - Unique constraint raises error when duplicate value added
+    """
+    dupe_data = {
+        "unit_in": "ppb",
+        "unit_out": "ppm",
+        "parameter": "Test",
+        "scale": 0.44
+    }
+    insert_statement = insert(orm.DimUnitConversion)
+    with postgres_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"violates unique constraint"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                dupe_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.postgres
+@pytest.mark.base_v1
+@pytest.mark.parametrize(
+    "col_to_null", [
+        "unit_in",
+        "unit_out",
+        "parameter",
+        "scale"
+    ]
+)
+def test_dim_unit_conversion_null(postgres_connection, col_to_null):
+    """Test whether `dim_unit_conversion` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+        "unit_in": "ppt",
+        "unit_out": "ppm",
+        "parameter": "Test3",
+        "scale": 0.87
+    }
+    raw_data[col_to_null] = None
+
+    insert_statement = insert(orm.DimUnitConversion)
     with postgres_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,

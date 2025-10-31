@@ -7,6 +7,7 @@ Tests
 - Are table schemas valid?
     - `dim_device`
     - `dim_header`
+    - `dim_unit_conversion`
     - `dim_colocation`
     - `fact_measurement`
     - `fact_value`
@@ -15,20 +16,8 @@ Tests
     - Does it accept valid measurements?
     - Is duplicate data rejected?
     - Are null values rejected?
-- `dim_header`
-    - Does it accept valid measurements?
-    - Is duplicate data rejected?
-    - Are null values rejected?
-- `dim_flag`
-    - Does it accept valid measurements?
-    - Are null values rejected?
-    - Are bad foreign keys rejected?
-- `fact_measurement`
-    - Does it accept valid measurements?
-    - Is duplicate data rejected?
-    - Are null values rejected?
-    - Are bad foreign keys rejected?
 """
+#TODO: Finish
 import datetime as dt
 import sqlite3 as sql3
 
@@ -50,7 +39,7 @@ def db_path(tmp_path_factory):
 def sqlite_connection(db_path):
     """SQLAlchemy connection to SQLite DB."""
     db_engine = engine.get_engine(f"sqlite+pysqlite:///{db_path}")
-    orm._Base_V1.metadata.create_all(db_engine)
+    orm.create_tables(db_engine)
     return db_engine
 
 
@@ -96,7 +85,6 @@ def get_indices(cursor, expected_indices, table_name):
     formatted_result = {
         col[1]: col[2:] for col in result
     }
-    print(formatted_result)
     for col, config in expected_indices.items():
         tests[f"{col} OK"] = config == formatted_result[col]
 
@@ -121,6 +109,7 @@ def test_create_tables(db_path):
     expected_tables = (
         "dim_device",
         "dim_header",
+        "dim_unit_conversion",
         "dim_colocation",
         "fact_measurement",
         "fact_value",
@@ -238,6 +227,50 @@ def test_dim_header_schema(db_path, sql_types):
 @pytest.mark.orm
 @pytest.mark.sqlite
 @pytest.mark.base_v1
+def test_dim_unit_conversion_schema(db_path, sql_types):
+    """Test whether `dim_header` is set up correctly.
+
+    Tests
+    -----
+    - Each expected column present with proper type and configuration.
+    - Correct number of columns.
+    - Each expected index present.
+    - Correct number of indexes.
+    """
+    table_name = "dim_unit_conversion"
+    expected_col_structure = {
+        "id": (sql_types["SQLite"]["int"], 1, None, 1, 0),
+        "unit_in": (sql_types["SQLite"]["string"], 1, None, 0, 0),
+        "unit_out": (sql_types["SQLite"]["string"], 1, None, 0, 0),
+        "parameter": (sql_types["SQLite"]["string"], 1, None, 0, 0),
+        "scale": (sql_types["SQLite"]["float"], 1, None, 0, 0),
+    }
+    expected_indices = {
+        "sqlite_autoindex_dim_unit_conversion_1": (1, "u", 0)
+    }
+
+    conn = sql3.connect(db_path)
+    cursor = conn.cursor()
+    tests = get_table_cols(
+        cursor,
+        expected_col_structure,
+        table_name
+    )
+    tests = tests | get_indices(
+        cursor,
+        expected_indices,
+        table_name
+    )
+
+    for test, result in tests.items():
+        if not result:
+            print(f"{test}: {result}")
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.sqlite
+@pytest.mark.base_v1
 def test_fact_measurement_schema(db_path, sql_types):
     """Test whether `fact_measurement` is set up correctly.
 
@@ -261,7 +294,8 @@ def test_fact_measurement_schema(db_path, sql_types):
     }
     
     expected_indices = {
-        "sqlite_autoindex_fact_measurement_1": (1, "pk", 0)
+        "sqlite_autoindex_fact_measurement_1": (1, "pk", 0),
+        "sqlite_autoindex_fact_measurement_2": (1, "u", 0)
     }
 
     conn = sql3.connect(db_path)
@@ -619,6 +653,120 @@ def test_dim_header_null(sqlite_connection, col_to_null):
     raw_data[col_to_null] = None
 
     insert_statement = insert(orm.DimHeader)
+    with sqlite_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"NOT NULL constraint failed"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                raw_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.sqlite
+@pytest.mark.base_v1
+def test_dim_unit_conversion_good(sqlite_connection):
+    """Test whether `dim_unit_conversion` accepts correctly formatted data.
+
+    Tests
+    -----
+    - Data uploaded successfully
+    """
+    tests = {}
+    good_data = [
+        {
+            "unit_in": "ppm",
+            "unit_out": "ppb",
+            "parameter": "Test",
+            "scale": 0.77
+        },
+        {
+            "unit_in": "ppm",
+            "unit_out": "ppb",
+            "parameter": "Test2",
+            "scale": 0.66
+        },
+        {
+            "unit_in": "ppb",
+            "unit_out": "ppm",
+            "parameter": "Test",
+            "scale": 0.55
+        },
+    ]
+    expected_pks = ((None,), (None,), (None,))
+
+    insert_statement = insert(orm.DimUnitConversion)
+    with sqlite_connection.connect() as conn:
+        result = conn.execute(
+            insert_statement,
+            good_data
+        )
+        pks = tuple(result.inserted_primary_key_rows)
+        conn.commit()
+    tests["Rows inserted"] = pks == expected_pks
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.sqlite
+@pytest.mark.base_v1
+def test_dim_unit_conversion_dupe(sqlite_connection):
+    """Test whether `dim_unit_conversion` rejects duped data in unique columns.
+
+    Tests
+    -----
+    - Unique constraint raises error when duplicate value added
+    """
+    dupe_data = {
+        "unit_in": "ppb",
+        "unit_out": "ppm",
+        "parameter": "Test",
+        "scale": 0.44
+    }
+    insert_statement = insert(orm.DimUnitConversion)
+    with sqlite_connection.connect() as conn:
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=r"UNIQUE constraint failed"
+        ):
+            _ = conn.execute(
+                insert_statement,
+                dupe_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.sqlite
+@pytest.mark.base_v1
+@pytest.mark.parametrize(
+    "col_to_null", [
+        "unit_in",
+        "unit_out",
+        "parameter",
+        "scale"
+    ]
+)
+def test_dim_unit_conversion_null(sqlite_connection, col_to_null):
+    """Test whether `dim_unit_conversion` rejects null values from specific columns.
+
+    Tests
+    -----
+    - Not null constraint raises error when null value added
+    """
+    raw_data: dict[
+        str,
+        str | dt.datetime | int | float | dict[str, str] | None
+    ] = {
+        "unit_in": "ppt",
+        "unit_out": "ppm",
+        "parameter": "Test3",
+        "scale": 0.87
+    }
+    raw_data[col_to_null] = None
+
+    insert_statement = insert(orm.DimUnitConversion)
     with sqlite_connection.connect() as conn:
         with pytest.raises(
             sqlexc.IntegrityError,

@@ -33,6 +33,8 @@ def get_database(db_url: str) -> Database:
     elif db_url[:10] == "postgresql":
         _logger.debug("PostgreSQL database selected")
         db = db | Database.PostgreSQL
+    else:
+        raise ValueError("Invalid database url provided.")
     return db
 
 

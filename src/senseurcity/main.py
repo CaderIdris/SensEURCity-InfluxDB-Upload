@@ -2,8 +2,11 @@ import argparse
 import logging
 from pathlib import Path
 from typing import TypedDict
+from zipfile import ZipFile
 
-from senseurcity.zipped import download_data
+from senseurcity.engine import get_engine
+from senseurcity.orm import create_tables
+from senseurcity.zipped import download_data, Cities, get_csvs
 
 
 class ProgramConfig(TypedDict):
@@ -36,8 +39,8 @@ def parse_args() -> ProgramConfig:
         f"{Path.home() / 'Data/SensEURCity/senseurcity_data.zip'}"
     )
     _DEFAULT_DB_URL = (
-        "sqlite+pysqlite://"
-        f"{Path.home() / 'SensEURCity' / 'SensEURCity.db'}"
+        "sqlite+pysqlite:///"
+        f"{(Path.home() / 'Data/SensEURCity/SensEURCity.db').resolve()}"
     )
     _DEFAULT_SCHEMA_NAME = "measurement"
 
@@ -81,9 +84,8 @@ def parse_args() -> ProgramConfig:
     arg_parser.add_argument(
         "-f",
         "--force",
-        type=str,
+        action="store_true",
         help="Overwrite SensEURCity zip file if it already exists",
-        default=False,
         dest="force",
     )
 
@@ -133,6 +135,21 @@ def cli() -> None:
         for k, v in config.items():
             logger.debug("%s: %s", k, v)
 
+    # Create engine
+    logger.info("Connecting to db and creating tables")
+    engine = get_engine(config["db_url"], config["schema_name"])
+    create_tables(engine)
+
+    # Populate tables with static data
+    
+    #TODO: Devices
+
+    #TODO: Headers
+
+    #TODO: Conversion
+
+    # Download data
+    logger.info("(E) Downloading SensEURCity dataset")
     zip_path = download_data(
         config["zip_url"],
         config["zip_path"],
@@ -140,3 +157,12 @@ def cli() -> None:
     )
     if zip_path is None:
         logger.error("SensEURCity data could not be downloaded, exiting.")
+        return None
+
+    senseurcity_zip = ZipFile(zip_path)
+
+    # TODO: Upload Antwerp data
+    # TODO: Upload Oslo data
+    # TODO: Upload Zagreb data
+
+    #TODO: EXIT

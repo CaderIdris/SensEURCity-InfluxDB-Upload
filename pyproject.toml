@@ -71,12 +71,12 @@ no_implicit_reexport = true
 legacy_tox_ini = """
 	[tox]
 	minversion = 4.0
-	envlist = py311, py313, ruff, mypy
+	envlist = py312, py313, ruff, mypy
 	isolated_build = true
 
 	[gh-actions]
 	python =
-		3.11: py311
+		3.12: py312
 		3.13: py313, mypy, ruff
 
 	[testenv]
@@ -88,12 +88,12 @@ legacy_tox_ini = """
 		pytest --basetemp={envtmpdir}
 
 	[testenv:ruff]
-	basepython = python3.11
+	basepython = python3.12
 	deps = -r requirements.txt
 	commands = ruff check src tests
 
 	[testenv:mypy]
-	basepython = python3.11
+	basepython = python3.12
 	deps = -r requirements.txt
 	commands = mypy src
 """

@@ -7,7 +7,8 @@ to the tables to maintain data integrity.
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ForeignKeyConstraint, MetaData
+from sqlalchemy import ForeignKeyConstraint, MetaData, UniqueConstraint
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.types import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -75,6 +76,38 @@ class DimHeader(_Base_V1):
     parameter: Mapped[str] = mapped_column(nullable=False)
     unit: Mapped[str] = mapped_column(nullable=False)
     other: Mapped[dict[str, Any]] = mapped_column(nullable=True)
+
+
+class DimUnitConversion(_Base_V1):
+    """Declarative mapping of unit_conversion dimension table.
+
+    This table is used as a lookup for how to convert between different units.
+
+    Schema name: **measurement**
+
+    Table name: **dim_unit_conversion**
+
+    Schema
+    ------
+    - id [int, pk]: The row id.
+    - unit_in [str, not null]: The initial unit.
+    - unit_out [str, not null]: The unit to be converted to.
+    - parameter [str, not null]: The parameter being measured
+    - scale [float, not null]: Value to multiply the measurement by for \
+    conversion.
+    """
+
+    __tablename__ = "dim_unit_conversion"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    unit_in: Mapped[str] = mapped_column(nullable=False)
+    unit_out: Mapped[str] = mapped_column(nullable=False)
+    parameter: Mapped[str] = mapped_column(nullable=False)
+    scale: Mapped[float] = mapped_column(nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("unit_in", "unit_out", "parameter"),
+    )
 
 
 class DimColocation(_Base_V1):
@@ -145,6 +178,7 @@ class FactMeasurement(_Base_V1):
             ["device_key"],
             ["dim_device.key"]
         ),
+        UniqueConstraint("timestamp", "device_key")
     )
 
 
@@ -185,7 +219,8 @@ class FactValue(_Base_V1):
         ForeignKeyConstraint(
             ["header"],
             ["dim_header.header"]
-        )
+        ),
+        UniqueConstraint("point_hash", "header")
     )
 
 
@@ -222,4 +257,10 @@ class FactFlag(_Base_V1):
             ["point_hash"],
             ["fact_measurement.point_hash"],
         ),
+        UniqueConstraint("point_hash", "flag")
     )
+
+
+def create_tables(engine: Engine) -> None:
+    """"""
+    _Base_V1.metadata.create_all(engine)
