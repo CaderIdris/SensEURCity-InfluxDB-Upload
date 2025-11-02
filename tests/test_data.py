@@ -471,6 +471,39 @@ def test_get_ref_values(file):
 
 
 @pytest.mark.data
+@pytest.mark.parametrize(
+    "file",
+    [
+        ("Zagreb_64C52B", "ZAG")
+    ]
+)
+def test_get_ref_values_no_dupes(file):
+    """Test getting all measurement values.
+
+    Tests
+    -----
+    - Correct number of columns.
+    - Expected columns present.
+    - No unexpected headers.
+    - No '.' characters in the headers.
+    """
+    filename, city_prefix = file
+    tests = {}
+
+    csv_path = Path(f"./tests/test_zipped/{filename}.csv")
+    csv = pd.read_csv(csv_path)
+    
+    csv_dataclass = SensEURCityCSV.from_dataframe(
+        name=csv_path.name[:-4],
+        csv=csv.copy()
+    )
+    records = list(csv_dataclass.reference_values)
+    df = pd.DataFrame(records)
+
+    tests["Dupes removed"] = df.shape[0] == 2
+    assert all(tests.values())
+
+@pytest.mark.data
 def test_colocation(
     colocation_dataset: tuple[
         pd.DataFrame,
@@ -525,7 +558,7 @@ def test_import_headers():
         tests[f"unit in {i}"] = "unit" in header
         tests[f"other in {i}"] = "other" in header 
 
-    tests["Correct number of headers"] = len(headers) == 92
+    tests["Correct number of headers"] = len(headers) == 95
 
     for test, result in tests.items():
         if not result:

@@ -481,6 +481,12 @@ class SensEURCityCSV:
             id_vars=("point_hash", self.location_col)
         ).dropna(subset="value")
 
+        repeated = np.logical_and(
+            csv_subset["value"].eq(csv_subset["value"].shift(1)),
+            csv_subset["header"].eq(csv_subset["header"].shift(1))
+        )
+        csv_subset = csv_subset[~repeated]
+
         csv_subset["header"] = csv_subset.apply(
             lambda x: (
                     f"{x['header'].replace('.', '_')}_{city_match[x[self.location_col][:3]]}"

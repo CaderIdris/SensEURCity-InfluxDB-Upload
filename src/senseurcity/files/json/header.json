@@ -372,6 +372,30 @@
 		"Diameter unit": "µg"
 	},
 	{
+		"header": "OPCN3Temp",
+		"parameter": "T (OPC)",
+		"unit": "°C",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter"
+	},
+	{
+		"header": "OPCN3Hum",
+		"parameter": "RH (OPC)",
+		"unit": "%",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter"
+	},
+	{
+		"header": "OPCN3Vol",
+		"parameter": "Flowrate",
+		"unit": "mL/s",
+		"Supplier": "Alphasense",
+		"Sensor": "OPC-N3",
+		"Type": "Optical Particle Counter"
+	},
+	{
 		"header": "5301CAT",
 		"parameter": "PM1 (ATM)",
 		"unit": "µg/m³",
