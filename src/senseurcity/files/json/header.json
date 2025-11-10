@@ -100,6 +100,14 @@
 		"Type": "Electrochemical"
 	},
 	{
+		"header": "NO2_B43F_P1",
+		"parameter": "NO2",
+		"unit": "nA",
+		"Supplier": "Alphasense",
+		"Sensor": "NO2-B43F",
+		"Type": "Electrochemical"
+	},
+	{
 		"header": "OX_A431_P1",
 		"parameter": "Ox",
 		"unit": "nA",
@@ -529,7 +537,7 @@
 		"unit": "°C"
 	},
 	{
-		"header": "Ref_PM10_ISP",
+		"header": "Ref_PM10_TEOM_ISP",
 		"parameter": "PM10",
 		"unit": "µg/m³",
 		"Sensor": "Thermo Environment TEOM 1405 FDMS",
@@ -579,7 +587,7 @@
 		"Type": "OPC"
 	},
 	{
-		"header": "Ref_PM2.5_ANT",
+		"header": "Ref_PM2_5_ANT",
 		"parameter": "PM2.5",
 		"unit": "µg/m³",
 		"Sensor": "Palas Fidas 200",
@@ -635,7 +643,7 @@
 		"Type": "Light Scattering"
 	},
 	{
-		"header": "Ref_PM2.5_OSL",
+		"header": "Ref_PM2_5_OSL",
 		"parameter": "PM2.5",
 		"unit": "µg/m³",
 		"Sensor": "Palas Fidas 200",
@@ -656,14 +664,14 @@
 		"Type": "Light Scattering"
 	},
 	{
-		"header": "Ref_PM2.5_Fidas_OSL",
+		"header": "Ref_PM2_5_Fidas_OSL",
 		"parameter": "PM2.5 (Fidas)",
 		"unit": "µg/m³",
 		"Sensor": "Palas Fidas 200",
 		"Type": "Light Scattering"
 	},
 	{
-		"header": "Ref_PM2.5_TEOM_OSL",
+		"header": "Ref_PM2_5_TEOM_OSL",
 		"parameter": "PM2.5 (TEOM)",
 		"unit": "µg/m³",
 		"Sensor": "Thermo TEOM 1405 FDMS",
@@ -726,7 +734,7 @@
 		"Type": "Ultraviolet Photometry"
 	},
 	{
-		"header": "Ref_PM2.5_ZAG",
+		"header": "Ref_PM2_5_ZAG",
 		"parameter": "PM2.5",
 		"unit": "µg/m³",
 		"Sensor": "Sven Leckel SEQ 47/50-CD",

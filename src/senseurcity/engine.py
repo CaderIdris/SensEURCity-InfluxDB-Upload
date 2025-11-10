@@ -12,6 +12,7 @@ class Database(Flag):
     """Which database is being used?"""
     SQLite = auto()
     PostgreSQL = auto()
+    DuckDB = auto()
 
 
 class DatabaseConfig(Flag):
@@ -27,7 +28,10 @@ def get_database(db_url: str) -> Database:
     `Database` enum representing which database is being used.
     """
     db = Database(0)
-    if db_url[:6] == "sqlite":
+    if db_url[:6] == "duckdb":
+        _logger.debug("SQLite database selected")
+        db = db | Database.DuckDB
+    elif db_url[:6] == "sqlite":
         _logger.debug("SQLite database selected")
         db = db | Database.SQLite
     elif db_url[:10] == "postgresql":
@@ -57,7 +61,18 @@ def get_database_config(db: Database) -> DatabaseConfig:
             db_config |
             DatabaseConfig.SupportsSchema
         )
+    elif db == Database.DuckDB:
+        _logger.debug("Setting configuration options relevant for DuckDB")
+        db_config = (
+            db_config |
+            DatabaseConfig.SupportsSchema
+        )
     return db_config
+
+
+def sqlite_pragma(e: Engine, _):
+    e.execute('PRAGMA foreign_keys=on')
+    e.execute('PRAGMA journal_mode=WAL')
 
 
 def configure_db(
@@ -101,8 +116,13 @@ def configure_db(
         event.listen(
             engine,
             'connect',
-            lambda e, _: e.execute('pragma foreign_keys=on')
+            sqlite_pragma
         )
+        # event.listen(
+        #     engine,
+        #     'connect',
+        #     lambda e, _: e.execute('PRAGMA journal_mode=MEMORY')
+        # )
     if DatabaseConfig.SupportsSchema in db_config:
         _logger.debug("Configuration: Schema options")
         if schema_name != "measurement":
@@ -112,8 +132,9 @@ def configure_db(
                 }
             )
         with engine.connect() as conn:
-            conn.execute(schema.CreateSchema(schema_name))
-            conn.commit()
+            if not conn.dialect.has_schema(conn, schema_name):
+                conn.execute(schema.CreateSchema(schema_name))
+                conn.commit()
     return engine
 
 
@@ -135,7 +156,14 @@ def get_engine(
     SQLAlchemy Engine
     """
     _logger.info("Connecting to %s", db_url)
-    engine = create_engine(db_url)
+    engine = create_engine(
+        db_url,
+        # connect_args={
+        #     'config': {
+        #         'threads': 1
+        #     }
+        # }
+    )
     db = get_database(db_url)
     db_config = get_database_config(db)
     engine = configure_db(db, db_config, engine, schema_name)

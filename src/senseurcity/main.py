@@ -1,11 +1,14 @@
 import argparse
 from collections.abc import Generator
+import datetime as dt
 import logging
 from pathlib import Path
 from typing import TypedDict
 from zipfile import ZipFile
 
-from sqlalchemy import insert
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.engine.base import Engine
 
 from senseurcity.data import (
@@ -69,7 +72,7 @@ def parse_args() -> ProgramConfig:
         f"{Path.home() / 'Data/SensEURCity/senseurcity_data.zip'}"
     )
     _DEFAULT_DB_URL = (
-        "sqlite+pysqlite:///"
+        "duckdb:///"
         f"{(Path.home() / 'Data/SensEURCity/SensEURCity.db').resolve()}"
     )
     _DEFAULT_SCHEMA_NAME = "measurement"
@@ -178,7 +181,7 @@ def set_up_logger(verbosity: int) -> logging.Logger:
 
     format_str = (
         '%(asctime)s - %(funcName)s - %(levelname)s - %(message)s' 
-        if verbosity else '%(message)s'
+        if verbosity else '%(asctime)s - %(message)s'
     )
 
     handler = logging.StreamHandler()
@@ -206,11 +209,11 @@ def upload_data(
     records: Generator[DBRecord],
     table: type[orm._Base_V1],
     engine: Engine,
-    batch_size: int = 1000000
+    batch_size: int = 250000
 ) -> None:
     """"""
     logger = logging.getLogger('SensEURCity-AQua-ETL')
-    insert_statement = insert(table)
+    insert_statement = insert(table).on_conflict_do_nothing()
     _iteration_count = 0
     with engine.connect() as conn:
         while True:
@@ -218,49 +221,78 @@ def upload_data(
             if not batch:
                 break
             _iteration_count += 1
-            logger.debug("Iteration: %s", _iteration_count)
+            logger.debug(
+                "[%s] Batch number: %s",
+                table.__tablename__,
+                _iteration_count
+            )
             conn.execute(
-                insert_statement,
-                batch
+                insert_statement.values(batch)
             )
             conn.commit()
+
+
+def get_processed_files(
+    engine: Engine
+) -> list[str]:
+    """"""
+    select_statement = select(orm.MetaFilesProcessed.filename)
+    with Session(bind=engine) as session:
+        result = session.execute(select_statement)
+        files = [row[0] for row in result.all()]
+    return files
+        
+
 
 
 def upload_csv_data(
     zip: ZipFile,
     cities: Cities,
-    engine: Engine
+    engine: Engine,
+    processed_files = list[str]
 ) -> None:
     """"""
     logger = logging.getLogger('SensEURCity-AQua-ETL')
     for city in cities:
         logger.info("(T) Beginning transformations: %s", city.name)
         for filename, csv in get_csvs(zip, city):
+            if filename in processed_files:
+                logger.info("Skipping %s", filename)
+                continue
             logger.info("(T) Transforming csv file for %s", filename)
             csv_class = SensEURCityCSV.from_dataframe(filename, csv)
             logger.info("(L) Uploading data for %s", filename)
             # Device measurements
-            logger.debug("Measurements")
+            logger.info("(L) %s - Measurements", filename)
             upload_data(csv_class.measurements, orm.FactMeasurement, engine)
             # Device measurement values
-            logger.debug("Values")
+            logger.info("(L) %s - Values", filename)
             upload_data(csv_class.values, orm.FactValue, engine)
             # Device measurement flags
-            logger.debug("Flags")
+            logger.info("(L) %s - Flags", filename)
             upload_data(csv_class.flags, orm.FactFlag, engine)
             # Reference measurements
-            logger.debug("Reference Measurements")
+            logger.info("(L) %s - Reference Measurements", filename)
             upload_data(
                 csv_class.reference_measurements,
                 orm.FactMeasurement,
                 engine
             )
             # Reference measurement values
-            logger.debug("Reference Values")
+            logger.info("(L) %s - Reference Values", filename)
             upload_data(csv_class.reference_values, orm.FactValue, engine)
             # Co-location
-            logger.debug("Co-location")
+            logger.info("(L) %s - Co-location", filename)
             upload_data(csv_class.colocation, orm.DimColocation, engine)
+            # File processed
+            logger.info("(L) Adding %s to processed files list", filename)
+            upload_data(
+                ({"filename": filename, "timestamp": dt.datetime.now()} for _ in [0]),
+                orm.MetaFilesProcessed,
+                engine
+            )
+
+
 
 
 
@@ -282,7 +314,6 @@ def cli() -> None:
     engine = get_engine(config["db_url"], config["schema_name"])
     orm.create_tables(engine)
 
-
     # Download data
     logger.info("(E) Downloading SensEURCity dataset")
     zip_path = download_data(
@@ -302,6 +333,8 @@ def cli() -> None:
             logger.debug("%s", k.name)
 
     # Populate tables with static data
+    logger.info("(E) Querying list of processed files")
+    file_list = get_processed_files(engine)
     
     #TODO: Devices
     logger.info("(L) Uploading device information")
@@ -319,6 +352,6 @@ def cli() -> None:
     senseurcity_zip = ZipFile(zip_path)
 
     logger.info("(T) Transforming csv data")
-    upload_csv_data(senseurcity_zip, cities, engine)
+    upload_csv_data(senseurcity_zip, cities, engine, file_list)
 
     #TODO: EXIT

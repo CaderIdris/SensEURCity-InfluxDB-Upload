@@ -261,22 +261,23 @@ class SensEURCityCSV:
             set(csv.columns) -
             reference_cols -
             flag_cols -
-            {date_col}
+            {date_col} - 
+            set(col for col in csv.columns if "OPCN3Bin" in col)
         )
         _logger.info("%s measurement columns found", len(measurement_cols))
         _logger.debug("Measurement columns: %s", f'"{"", "".join(measurement_cols)}"')
 
         # Parse date and calculate hash columns
-        csv[date_col] = pd.to_datetime(csv[date_col])
+        csv[date_col] = pd.to_datetime(csv[date_col], format="%Y-%m-%dT%H:%M:%SZ")
         csv["point_hash"] = [
-            hashlib.sha1(
+            hashlib.sha256(
                 f"{name}{ts.timestamp()}".encode('utf-8'),
                 usedforsecurity=False
             ).hexdigest()
             for ts in csv[date_col].dt.to_pydatetime()
         ]
         csv["ref_point_hash"] = [
-            hashlib.sha1(
+            hashlib.sha256(
                 f"{row[1][location_col]}"
                 f"{row[1][date_col].to_pydatetime().timestamp()}"
                 .encode('utf-8'),
@@ -315,8 +316,8 @@ class SensEURCityCSV:
         csv_subset["timestamp"] = csv_subset.index
         csv_subset["device_key"] = self.name
 
-        for record in csv_subset.to_dict('records'):
-            yield record
+        for record in csv_subset.iterrows():
+            yield record[1].to_dict()
 
     @property
     def values(self) -> Generator[ValueRecord]:
@@ -337,8 +338,8 @@ class SensEURCityCSV:
             id_vars="point_hash"
         ).dropna(subset="value")
         csv_subset["header"] = csv_subset["header"].str.replace('.', '_')
-        for record in csv_subset.to_dict('records'):
-            yield record
+        for record in csv_subset.iterrows():
+            yield record[1].to_dict()
     
     @property
     def flags(self) -> Generator[FlagRecord]:
@@ -359,8 +360,10 @@ class SensEURCityCSV:
             id_vars="point_hash"
         ).dropna(subset="value")
 
-        for record in csv_subset.to_dict('records'):
-            yield record
+        # for record in csv_subset.to_dict('records'):
+        #     yield record
+        for record in csv_subset.iterrows():
+            yield record[1].to_dict()
 
     @property
     def colocation(self) -> Generator[ColocationRecord]:
@@ -411,8 +414,10 @@ class SensEURCityCSV:
             .sort_values("start_date")
         )
         grouped["device_key"] = self.name
-        for record in grouped.to_dict('records'):
-            yield record
+        # for record in csv_subset.to_dict('records'):
+        #     yield record
+        for record in grouped.iterrows():
+            yield record[1].to_dict()
 
     @property
     def reference_measurements(self) -> Generator[MeasurementRecord]:
@@ -428,7 +433,7 @@ class SensEURCityCSV:
         _logger.info("Querying reference measurements for %s", self.name)
         csv_subset = (
             self.csv
-            .loc[:, [self.location_col, "point_hash"]]
+            .loc[:, [self.location_col, "ref_point_hash"]]
             .dropna(
                 subset=self.location_col
             )
@@ -439,8 +444,10 @@ class SensEURCityCSV:
         )
         csv_subset["timestamp"] = csv_subset.index
 
-        for record in csv_subset.to_dict('records'):
-            yield record
+        # for record in csv_subset.to_dict('records'):
+        #     yield record
+        for record in csv_subset.iterrows():
+            yield record[1].to_dict()
 
     @property
     def reference_values(self) -> Generator[ValueRecord]:
@@ -462,7 +469,7 @@ class SensEURCityCSV:
             "VIT": "ANT",
             "OSL": "OSL",
             "ZAG": "ZAG",
-            "ISP": "ISP"
+            "Isp": "ISP"
         }
         csv_subset = (
             self.csv

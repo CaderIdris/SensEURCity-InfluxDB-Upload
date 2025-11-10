@@ -7,7 +7,14 @@ to the tables to maintain data integrity.
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ForeignKeyConstraint, MetaData, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    ForeignKeyConstraint,
+    Integer,
+    MetaData,
+    Sequence,
+    UniqueConstraint
+)
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.types import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -18,6 +25,7 @@ class _Base_V1(DeclarativeBase):
         dict[str, Any]: JSON
     }
     metadata = MetaData(schema="measurement")
+
 
 
 class DimDevice(_Base_V1):
@@ -99,10 +107,9 @@ class DimUnitConversion(_Base_V1):
 
     __tablename__ = "dim_unit_conversion"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    unit_in: Mapped[str] = mapped_column(nullable=False)
-    unit_out: Mapped[str] = mapped_column(nullable=False)
-    parameter: Mapped[str] = mapped_column(nullable=False)
+    unit_in: Mapped[str] = mapped_column(primary_key=True)
+    unit_out: Mapped[str] = mapped_column(primary_key=True)
+    parameter: Mapped[str] = mapped_column(primary_key=True)
     scale: Mapped[float] = mapped_column(nullable=False)
 
     __table_args__ = (
@@ -131,7 +138,14 @@ class DimColocation(_Base_V1):
 
     __tablename__ = "dim_colocation"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id_seq = Sequence('id_seq')
+    id = Column(
+        'id',
+        Integer,
+        id_seq,
+        server_default=id_seq.next_value(),
+        primary_key=True
+    )
     device_key: Mapped[str] = mapped_column(nullable=False)
     other_key: Mapped[str] = mapped_column(nullable=False)
     start_date: Mapped[datetime] = mapped_column(nullable=False)
@@ -191,7 +205,6 @@ class FactValue(_Base_V1):
 
     Schema
     ------
-    - *id* [int, pk]: Autoincrementing row number.
     - *point_hash* [str, not null]: Hash of the timestamp and sensor name.
     - *flag* [str, not null]: The code of the flag.
     - *value* [str, not null]: The value of the flag.
@@ -206,9 +219,8 @@ class FactValue(_Base_V1):
 
     __tablename__ = "fact_value"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    point_hash: Mapped[str] = mapped_column(nullable=False)
-    header: Mapped[str] = mapped_column(nullable=False)
+    point_hash: Mapped[str] = mapped_column(primary_key=True)
+    header: Mapped[str] = mapped_column(primary_key=True)
     value: Mapped[float] = mapped_column(nullable=False)
 
     __table_args__ = (
@@ -219,8 +231,7 @@ class FactValue(_Base_V1):
         ForeignKeyConstraint(
             ["header"],
             ["dim_header.header"]
-        ),
-        UniqueConstraint("point_hash", "header")
+        )
     )
 
 
@@ -233,7 +244,6 @@ class FactFlag(_Base_V1):
 
     Schema
     ------
-    - *id* [int, pk]: Autoincrementing row number.
     - *point_hash* [str, not null]: Hash of the timestamp and sensor name.
     - *flag* [str, not null]: The code of the flag.
     - *value* [str, not null]: The value of the flag.
@@ -247,9 +257,8 @@ class FactFlag(_Base_V1):
 
     __tablename__ = "fact_flag"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    point_hash: Mapped[str] = mapped_column(nullable=False)
-    flag: Mapped[str] = mapped_column(nullable=False)
+    point_hash: Mapped[str] = mapped_column(primary_key=True)
+    flag: Mapped[str] = mapped_column(primary_key=True)
     value: Mapped[str] = mapped_column(nullable=False)
 
     __table_args__ = (
@@ -257,8 +266,17 @@ class FactFlag(_Base_V1):
             ["point_hash"],
             ["fact_measurement.point_hash"],
         ),
-        UniqueConstraint("point_hash", "flag")
     )
+
+
+class MetaFilesProcessed(_Base_V1):
+    """
+    """
+
+    __tablename__ = "meta_files_processed"
+
+    filename: Mapped[str] = mapped_column(primary_key=True)
+    timestamp: Mapped[datetime]
 
 
 def create_tables(engine: Engine) -> None:
