@@ -208,6 +208,8 @@ class SensEURCityCSV:
             raise ValueError(err_msg)
 
         _logger.info("Parsing records from %s", name)
+        # Fix strange space in some columns
+        csv[location_col] = csv[location_col].str.strip()
 
         # Split columns into reference and flag columns
         reference_cols = {
