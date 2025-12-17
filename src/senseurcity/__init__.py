@@ -1,6 +1,4 @@
-"""
-.. include:: ../../README.md
-"""
+""".. include:: ../../README.md."""
 
 from . import data, engine, main, orm, zipped
 

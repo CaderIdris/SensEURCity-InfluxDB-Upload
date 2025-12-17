@@ -29,7 +29,7 @@ def colocation_dataset() -> tuple[
     locations = (
         (["A"] * 300) +
         ([np.nan] * 98) +
-        (["B"] * 200) + 
+        (["B"] * 200) +
         (["A"] * 100) +
         ([np.nan] * 300) +
         ["A", np.nan] +
@@ -81,7 +81,7 @@ def colocation_dataset() -> tuple[
 
 @pytest.mark.data
 @pytest.mark.parametrize("csv_path", file_paths())
-def test_read_zip(csv_path):
+def test_read_zip(csv_path) -> None:
     """Read each mock csv.
 
     Tests
@@ -108,9 +108,9 @@ def test_read_zip(csv_path):
 
     tests["csv is correct shape"] = csv_dataclass.csv.shape == (
         csv_to_test.shape[0],
-        csv_to_test.shape[1] + 1
+        csv_to_test.shape[1] - 1
     )
-    
+
     tests["Measurement cols have values"] = len(csv_dataclass.measurement_cols) > 0
     tests["Flag cols have values"] = len(csv_dataclass.flag_cols) > 0
     tests["Ref cols have values"] = len(csv_dataclass.reference_cols) > 0
@@ -125,9 +125,9 @@ def test_read_zip(csv_path):
             csv_dataclass.flag_cols & csv_dataclass.reference_cols
     )
 
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
     assert all(tests.values())
 
@@ -140,7 +140,7 @@ def test_read_zip(csv_path):
         {"location_col": "BAD"}
     ]
 )
-def test_bad_column_names(bad_kwarg):
+def test_bad_column_names(bad_kwarg) -> None:
     """Test giving a bad argument for date or location col.
 
     Tests
@@ -150,7 +150,7 @@ def test_bad_column_names(bad_kwarg):
     csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
     match_str = (
         f"'BAD' is not present in {csv_path.name}. Expected a valid name for "
-        f"the {tuple(bad_kwarg.keys())[0].split('_')[0]} column."
+        f"the {next(iter(bad_kwarg.keys())).split('_')[0]} column."
 
     )
     csv = pd.read_csv(csv_path)
@@ -166,45 +166,7 @@ def test_bad_column_names(bad_kwarg):
 
 
 @pytest.mark.data
-@pytest.mark.parametrize(
-    "bad_kwarg",
-    ["date_col", "location_col"]
-)
-@pytest.mark.parametrize(
-    "bad_name",
-    ["point_hash", "ref_point_hash"]
-)
-def test_protected_column_name(bad_kwarg, bad_name):
-    """Tests whether a protected column name is given for date or location col.
-
-    Honestly, this should never happen but better safe than sorry right?
-
-    Tests
-    -----
-    - ValueError is raised with expected message
-
-    """
-    csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
-    match_str = (
-        f"{bad_kwarg} cannot be {bad_name}, this is a protected name."
-
-    )
-    kwarg = {bad_kwarg: bad_name}
-    csv = pd.read_csv(csv_path)
-    csv[bad_name] = None
-    with pytest.raises(
-        ValueError,
-        match=match_str
-    ):
-        _ = SensEURCityCSV.from_dataframe(
-            name=csv_path.name[:-4],
-            csv=csv.copy(),
-            **kwarg
-        )
-
-
-@pytest.mark.data
-def test_get_measurements():
+def test_get_measurements() -> None:
     """Tests whether the measurements are parsed from the file.
 
     Tests
@@ -218,7 +180,7 @@ def test_get_measurements():
 
     csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
     csv = pd.read_csv(csv_path)
-    
+
     csv_dataclass = SensEURCityCSV.from_dataframe(
         name=csv_path.name[:-4],
         csv=csv.copy()
@@ -226,144 +188,18 @@ def test_get_measurements():
     records = list(csv_dataclass.measurements)
     df = pd.DataFrame(records)
 
-    tests["Correct num of cols"] = df.shape[1] == 3
-    for col_name in ("point_hash", "timestamp", "device_key"):
-        tests[f"{col_name} in df"] = col_name in df.columns
+    tests["Correct num of cols"] = df.shape[1] == 5
+    tests["No duplicated timestamp values"] = df["time"].is_unique
 
-    tests["No duplicated point_hash values"] = df["point_hash"].is_unique
-    tests["No duplicated timestamp values"] = df["timestamp"].is_unique
-
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
     assert all(tests.values())
 
 
 @pytest.mark.data
-def test_get_values():
-    """Test getting all measurement values.
-
-    Tests
-    -----
-    - Correct number of columns.
-    - Expected columns present.
-    - No unexpected headers.
-    - No '.' characters in the headers.
-    """
-    tests = {}
-
-    csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
-    csv = pd.read_csv(csv_path)
-    
-    csv_dataclass = SensEURCityCSV.from_dataframe(
-        name=csv_path.name[:-4],
-        csv=csv.copy()
-    )
-    records = list(csv_dataclass.values)
-    df = pd.DataFrame(records)
-
-    tests["Correct num of cols"] = df.shape[1] == 3
-    for col_name in ("point_hash", "header", "value"):
-        tests[f"{col_name} in df"] = col_name in df.columns
-
-    tests["No extra headers"] = len(
-        set(df["header"].unique()) -
-        csv_dataclass.measurement_cols
-    ) == 0
-
-    tests["No . in headers"] = not df["header"].str.contains(".", regex=False).any()
-
-    for test, result in tests.items():
-        if not result:
-            print(f"{test}: {result}")
-
-    assert all(tests.values())
-
-
-@pytest.mark.data
-def test_get_flags():
-    """Test getting all measurement flags.
-
-    Tests
-    -----
-    - Correct number of columns.
-    - Expected columns present.
-    - No unexpected flags.
-    - No '.' characters in the flags.
-    """
-    tests = {}
-
-    csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
-    csv = pd.read_csv(csv_path)
-    
-    csv_dataclass = SensEURCityCSV.from_dataframe(
-        name=csv_path.name[:-4],
-        csv=csv.copy()
-    )
-    records = list(csv_dataclass.flags)
-    df = pd.DataFrame(records)
-
-    tests["Correct num of cols"] = df.shape[1] == 3
-    for col_name in ("point_hash", "flag", "value"):
-        tests[f"{col_name} in df"] = col_name in df.columns
-
-    tests["No extra flags"] = len(
-        set(df["flag"].unique()) -
-        csv_dataclass.flag_cols -
-        {"Collocation"}
-    ) == 0
-
-    tests["No . in flags"] = not df["flag"].str.contains(".", regex=False).any()
-
-    for test, result in tests.items():
-        if not result:
-            print(f"{test}: {result}")
-
-    assert all(tests.values())
-
-
-@pytest.mark.data
-def test_hashes_match():
-    """Test all hashes in flags and values match measurement hashes.
-
-    Tests
-    -----
-    - No hashes in flags that aren't in measurements.
-    - No hashes in values that aren't in measurements.
-
-    """
-    tests = {}
-
-    csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
-    csv = pd.read_csv(csv_path)
-    
-    csv_dataclass = SensEURCityCSV.from_dataframe(
-        name=csv_path.name[:-4],
-        csv=csv.copy()
-    )
-    measurement_records = list(csv_dataclass.measurements)
-    flag_records = list(csv_dataclass.flags)
-    value_records = list(csv_dataclass.values)
-
-    measurement_hashes = set(pd.DataFrame(measurement_records)["point_hash"])
-    flag_hashes = set(pd.DataFrame(flag_records)["point_hash"])
-    value_hashes = set(pd.DataFrame(value_records)["point_hash"])
-
-    tests["No wrong flag hashes"] = len(flag_hashes - measurement_hashes) == 0
-    tests["No wrong value hashes"] = len(
-        value_hashes - measurement_hashes
-    ) == 0
-
-    for test, result in tests.items():
-        if not result:
-            print(f"{test}: {result}")
-
-    assert all(tests.values())
-
-
-@pytest.mark.data
-def test_get_ref_measurements():
+def test_get_ref_measurements() -> None:
     """Tests whether the reference measurements are parsed.
 
     Tests
@@ -377,7 +213,7 @@ def test_get_ref_measurements():
 
     csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
     csv = pd.read_csv(csv_path)
-    
+
     csv_dataclass = SensEURCityCSV.from_dataframe(
         name=csv_path.name[:-4],
         csv=csv.copy()
@@ -385,122 +221,13 @@ def test_get_ref_measurements():
     records = list(csv_dataclass.reference_measurements)
     df = pd.DataFrame(records)
 
-    tests["Correct num of cols"] = df.shape[1] == 3
-    for col_name in ("point_hash", "timestamp", "device_key"):
-        tests[f"{col_name} in df"] = col_name in df.columns
+    tests["Correct num of cols"] = df.shape[1] == 5
+    tests["No duplicated timestamp values"] = df["time"].is_unique
 
-    tests["No duplicated point_hash values"] = df["point_hash"].is_unique
-    tests["No duplicated timestamp values"] = df["timestamp"].is_unique
-
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
-    assert all(tests.values())
-
-
-@pytest.mark.data
-@pytest.mark.parametrize(
-    "file",
-    [
-        ("Antwerp_402B00", "ANT"),
-        ("Antwerp_402B01", "ANT"),
-        ("Oslo_64A291", "OSL"),
-        ("Zagreb_64C52B", "ZAG"),
-    ]
-)
-def test_get_ref_values(file):
-    """Test getting all measurement values.
-
-    Tests
-    -----
-    - Correct number of columns.
-    - Expected columns present.
-    - No unexpected headers.
-    - No '.' characters in the headers.
-    """
-    filename, city_prefix = file
-    tests = {}
-
-    csv_path = Path(f"./tests/test_zipped/{filename}.csv")
-    csv = pd.read_csv(csv_path)
-    
-    csv_dataclass = SensEURCityCSV.from_dataframe(
-        name=csv_path.name[:-4],
-        csv=csv.copy()
-    )
-    records = list(csv_dataclass.reference_values)
-    df = pd.DataFrame(records)
-
-    tests["Correct num of cols"] = df.shape[1] == 3
-    for col_name in ("point_hash", "header", "value"):
-        tests[f"{col_name} in df"] = col_name in df.columns
-
-    tests["No extra headers"] = len(
-        set(df["header"].unique()) -
-        {
-            f"Ref_NO_{city_prefix}",
-            f"Ref_NO2_{city_prefix}",
-            f"Ref_O3_{city_prefix}",
-            f"Ref_CO_ppm_{city_prefix}",
-            f"Ref_PM2_5_{city_prefix}",
-            f"Ref_PM10_{city_prefix}",
-            f"Ref_PM2_5_Fidas_{city_prefix}",
-            f"Ref_PM4_Fidas_{city_prefix}",
-            f"Ref_PM10_Fidas_{city_prefix}",
-            f"Ref_PMtot_Fidas_{city_prefix}",
-            f"Ref_PM1_Fidas_{city_prefix}",
-            f"Ref_PM1_{city_prefix}",
-            "Ref_Press",
-            "Ref_Lat",
-            "Ref_Long",
-            "Ref_Temp",
-            "Ref_RH"
-        }
-    ) == 0
-
-    tests["No . in headers"] = (
-            not df["header"].str.contains(".", regex=False).any()
-    )
-
-    for test, result in tests.items():
-        if not result:
-            print(f"{test}: {result}")
-
-    assert all(tests.values())
-
-
-@pytest.mark.data
-@pytest.mark.parametrize(
-    "file",
-    [
-        ("Zagreb_64C52B", "ZAG")
-    ]
-)
-def test_get_ref_values_no_dupes(file):
-    """Test getting all measurement values.
-
-    Tests
-    -----
-    - Correct number of columns.
-    - Expected columns present.
-    - No unexpected headers.
-    - No '.' characters in the headers.
-    """
-    filename, city_prefix = file
-    tests = {}
-
-    csv_path = Path(f"./tests/test_zipped/{filename}.csv")
-    csv = pd.read_csv(csv_path)
-    
-    csv_dataclass = SensEURCityCSV.from_dataframe(
-        name=csv_path.name[:-4],
-        csv=csv.copy()
-    )
-    records = list(csv_dataclass.reference_values)
-    df = pd.DataFrame(records)
-
-    tests["Dupes removed"] = df.shape[0] == 2
     assert all(tests.values())
 
 @pytest.mark.data
@@ -508,7 +235,7 @@ def test_colocation(
     colocation_dataset: tuple[
         pd.DataFrame,
         tuple[tuple[str, str, dt.datetime, dt.datetime], ...]
-    ]):
+    ]) -> None:
     """Test the colocation dataset.
 
     This is more complicated so uses a bespoke dataframe to test.
@@ -540,15 +267,15 @@ def test_colocation(
     ):
         tests[f"{num} correct"] = generated == expected
 
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
     assert all(tests.values())
 
 
 @pytest.mark.data
-def test_import_headers():
+def test_import_headers() -> None:
     """Test importing the headers json."""
     tests = {}
     headers = list(get_header_records())
@@ -556,19 +283,19 @@ def test_import_headers():
         tests[f"header in {i}"] = "header" in header
         tests[f"parameter in {i}"] = "parameter" in header
         tests[f"unit in {i}"] = "unit" in header
-        tests[f"other in {i}"] = "other" in header 
+        tests[f"other in {i}"] = "other" in header
 
-    tests["Correct number of headers"] = len(headers) == 95
+    tests["Correct number of headers"] = len(headers) == 96
 
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
     assert all(tests.values())
 
 
 @pytest.mark.data
-def test_import_devices():
+def test_import_devices() -> None:
     """Test importing the devices json."""
     tests = {}
     devices = list(get_device_records())
@@ -578,18 +305,17 @@ def test_import_devices():
         tests[f"short_name in {i}"] = "short_name" in device
         tests[f"dataset in {i}"] = "dataset" in device
         tests[f"reference in {i}"] = "reference" in device
+    tests["Correct number of devices"] = len(devices) == 165
 
-    tests["Correct number of devices"] = len(devices) == 109
-
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
     assert all(tests.values())
 
 
 @pytest.mark.data
-def test_import_unit_conversion():
+def test_import_unit_conversion() -> None:
     """Test importing the unit conversion json."""
     tests = {}
     conversions = list(get_unit_conversion_records())
@@ -601,8 +327,8 @@ def test_import_unit_conversion():
 
     tests["Correct number of devices"] = len(conversions) == 3
 
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
     assert all(tests.values())

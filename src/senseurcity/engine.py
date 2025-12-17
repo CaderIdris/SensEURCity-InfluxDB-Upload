@@ -1,7 +1,9 @@
+"""Create SensEURCity engine."""
 from enum import auto, Flag
 import logging
 
 from sqlalchemy import create_engine, event
+from sqlalchemy.engine import Connection
 from sqlalchemy.engine.base import Engine
 from sqlalchemy import schema
 
@@ -9,14 +11,16 @@ _logger = logging.getLogger(f"__main__.{__name__}")
 
 
 class Database(Flag):
-    """Which database is being used?"""
+    """Which database is being used."""
+
     SQLite = auto()
     PostgreSQL = auto()
     DuckDB = auto()
 
 
 class DatabaseConfig(Flag):
-    """What does the database support?"""
+    """What does the database support."""
+
     SupportsSchema = auto()
 
 
@@ -26,6 +30,7 @@ def get_database(db_url: str) -> Database:
     Returns
     -------
     `Database` enum representing which database is being used.
+
     """
     db = Database(0)
     if db_url[:6] == "duckdb":
@@ -38,7 +43,8 @@ def get_database(db_url: str) -> Database:
         _logger.debug("PostgreSQL database selected")
         db = db | Database.PostgreSQL
     else:
-        raise ValueError("Invalid database url provided.")
+        msg = "Invalid database url provided."
+        raise ValueError(msg)
     return db
 
 
@@ -53,6 +59,7 @@ def get_database_config(db: Database) -> DatabaseConfig:
     Returns
     -------
     SQLAlchemy Engine
+
     """
     db_config = DatabaseConfig(0)
     if db == Database.PostgreSQL:
@@ -70,9 +77,10 @@ def get_database_config(db: Database) -> DatabaseConfig:
     return db_config
 
 
-def sqlite_pragma(e: Engine, _):
-    e.execute('PRAGMA foreign_keys=on')
-    e.execute('PRAGMA journal_mode=WAL')
+def sqlite_pragma(e: Connection, _) -> None:  # noqa: ANN001
+    """Specific SQLite pragma configuration."""
+    e.execute("PRAGMA foreign_keys=on")  # type: ignore[call-overload]
+    e.execute("PRAGMA journal_mode=WAL")  # type: ignore[call-overload]
 
 
 def configure_db(
@@ -105,6 +113,7 @@ def configure_db(
     Returns
     -------
     SQLAlchemy Engine
+
     """
     if db == Database.SQLite:
         _logger.debug("Configuration: SQLite specific settings")
@@ -115,7 +124,7 @@ def configure_db(
         )
         event.listen(
             engine,
-            'connect',
+            "connect",
             sqlite_pragma
         )
         # event.listen(
@@ -154,6 +163,7 @@ def get_engine(
     Returns
     -------
     SQLAlchemy Engine
+
     """
     _logger.info("Connecting to %s", db_url)
     engine = create_engine(
@@ -166,6 +176,5 @@ def get_engine(
     )
     db = get_database(db_url)
     db_config = get_database_config(db)
-    engine = configure_db(db, db_config, engine, schema_name)
-    return engine
+    return configure_db(db, db_config, engine, schema_name)
 

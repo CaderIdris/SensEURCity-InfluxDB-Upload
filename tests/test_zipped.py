@@ -7,6 +7,7 @@ import pytest
 import requests
 
 from senseurcity.zipped import Cities, download_data, get_csvs
+from typing import Never
 
 
 @pytest.fixture(scope="session")
@@ -34,11 +35,11 @@ def double_dataset_mock_path(tmp_path_factory: pytest.TempPathFactory) -> Path:
 def mock_data_list():
     """List of files and their contents for mock purposes."""
     return [
-        ("a.txt", 'testing a'),
-        ("b.txt", 'testing b'),
-        ("c.txt", 'testing c'),
-        ("d.txt", 'testing d'),
-        ("e.txt", 'testing e'),
+        ("a.txt", "testing a"),
+        ("b.txt", "testing b"),
+        ("c.txt", "testing c"),
+        ("d.txt", "testing d"),
+        ("e.txt", "testing e"),
     ]
 
 def make_mock_zip_file():
@@ -53,47 +54,49 @@ def make_mock_zip_file():
 
 class MockResponseValid:
     """Mock class for a good response from an API."""
+
     @property
-    def status_code(self):
+    def status_code(self) -> int:
         """If the response is good, status_code should be 200."""
         return 200
 
     @property
     def content(self):
         """Return the content from the `make_mock_zip_file` function."""
-        mock_zip = make_mock_zip_file()
-        return mock_zip
+        return make_mock_zip_file()
 
-    def raise_for_status(self):
+    def raise_for_status(self) -> None:
         """The function being tested uses the `raise_for_status` function.
 
         This raises an error if a non-200 status code is encountered. However,
         this is a mock for a good response so we just return None.
         """
-        return None
+        return
 
 
 class MockResponseBad:
     """Mock class for a bad response from an API."""
+
     @property
-    def status_code(self):
+    def status_code(self) -> int:
         """One of many bad status codes."""
         return 404
 
     @property
-    def content(self):
+    def content(self) -> None:
         """Won't return anything as it's bad."""
         return None
 
-    def raise_for_status(self):
+    def raise_for_status(self) -> Never:
         """If a bad status code is encountered, a HTTP error will be raised."""
+        msg = "404 Client Error"
         raise requests.exceptions.HTTPError(
-            "404 Client Error"
+            msg
         )
 
 
 @pytest.mark.zipfile
-def test_download_zip(monkeypatch: pytest.MonkeyPatch, data_path: Path):
+def test_download_zip(monkeypatch: pytest.MonkeyPatch, data_path: Path) -> None:
     """Test downloading a zip file using the `download_data` function.
 
     This test does not download any actual data, it uses a mock response
@@ -113,7 +116,7 @@ def test_download_zip(monkeypatch: pytest.MonkeyPatch, data_path: Path):
 
     def mock_get(*args, **kwargs):
         return MockResponseValid()
-    
+
     monkeypatch.setattr(requests, "get", mock_get)
 
     res = download_data("http://fakeurl", zip_path)
@@ -131,9 +134,9 @@ def test_download_zip(monkeypatch: pytest.MonkeyPatch, data_path: Path):
         tests[f"{filename} expected"] = filename in mock_file_names
         tests[f"{filename} not empty"] = file_info.file_size > 0
 
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
     assert all(tests.values())
 
@@ -143,7 +146,7 @@ def test_overwrite_protection(
     monkeypatch: pytest.MonkeyPatch,
     empty_mock_path: Path,
     caplog: pytest.LogCaptureFixture,
-):
+) -> None:
     """Test overwrite protection.
 
     Tests
@@ -154,7 +157,7 @@ def test_overwrite_protection(
 
     def mock_get(*args, **kwargs):
         return MockResponseValid()
-    
+
     monkeypatch.setattr(requests, "get", mock_get)
 
     with caplog.at_level(logging.DEBUG):
@@ -164,9 +167,9 @@ def test_overwrite_protection(
         "File already exists, skipping download." in caplog.text
     )
 
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
     assert all(tests.values())
 
@@ -176,7 +179,7 @@ def test_bad_download(
     monkeypatch: pytest.MonkeyPatch,
     data_path: Path,
     caplog: pytest.LogCaptureFixture,
-):
+) -> None:
     """Test a failed download using the `download_data` function.
 
     This test mocks a failed download without trying to download anything.
@@ -192,7 +195,7 @@ def test_bad_download(
 
     def mock_get(*args, **kwargs):
         return MockResponseBad()
-    
+
     monkeypatch.setattr(requests, "get", mock_get)
 
     with caplog.at_level(logging.ERROR):
@@ -201,9 +204,9 @@ def test_bad_download(
     tests["Nothing returns"] = res is None
     tests["Error is logged"] = "HTTP Error: 404 Client Error" in caplog.text
 
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
     assert all(tests.values())
 
@@ -220,7 +223,7 @@ def test_bad_download(
 def test_senseurcity_zip_class(
     sec_mock_path: Path,
     valid_cities: tuple[Cities, int],
-):
+) -> None:
     """Test the `ZipFile` class on a mock zip file.
 
     Tests
@@ -230,12 +233,11 @@ def test_senseurcity_zip_class(
     tests = {}
     with zipfile.ZipFile(sec_mock_path) as sec_zip:
         dfs = list(get_csvs(sec_zip, valid_cities[0]))
-        print(dfs)
         tests["Correct number of csvs"] = len(dfs) == valid_cities[1]
 
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
     assert all(tests.values())
 
@@ -243,7 +245,7 @@ def test_senseurcity_zip_class(
 @pytest.mark.zipfile
 def test_no_such_city_fail(
     sec_mock_path: Path
-):
+) -> None:
     """Test giving an invalid value for `city` argument.
 
     Tests
@@ -252,16 +254,15 @@ def test_no_such_city_fail(
     """
     with pytest.raises(
         ValueError,
-        match="Unexpected city given. Please choose from"
-    ):
-        with zipfile.ZipFile(sec_mock_path) as sec_zip:
-            next(get_csvs(sec_zip, Cities(0)))
+        match=r"Unexpected city given. Please choose from"
+    ), zipfile.ZipFile(sec_mock_path) as sec_zip:
+        next(get_csvs(sec_zip, Cities(0)))
 
 
 @pytest.mark.zipfile
 def test_multiple_city_fail(
     sec_mock_path: Path
-):
+) -> None:
     """Test giving multiple cities for `city` argument.
 
     Tests
@@ -270,16 +271,15 @@ def test_multiple_city_fail(
     """
     with pytest.raises(
         ValueError,
-        match="Multiple cities given. Please choose one."
-    ):
-        with zipfile.ZipFile(sec_mock_path) as sec_zip:
-            next(get_csvs(sec_zip, Cities.Antwerp | Cities.Zagreb))
+        match=r"Multiple cities given. Please choose one."
+    ), zipfile.ZipFile(sec_mock_path) as sec_zip:
+        next(get_csvs(sec_zip, Cities.Antwerp | Cities.Zagreb))
 
 
 @pytest.mark.zipfile
 def test_bad_zip(
         data_path: Path
-):
+) -> None:
     """Test using a zip file with an unexpected structure.
 
     Tests
@@ -289,10 +289,9 @@ def test_bad_zip(
     zip_path = data_path / "test.zip"
     with pytest.raises(
         FileNotFoundError,
-        match="'dataset' folder missing from provided zip file. "
-    ):
-        with zipfile.ZipFile(zip_path) as sec_zip:
-            next(get_csvs(sec_zip, Cities.Antwerp))
+        match=r"'dataset' folder missing from provided zip file. "
+    ), zipfile.ZipFile(zip_path) as sec_zip:
+        next(get_csvs(sec_zip, Cities.Antwerp))
 
 
 @pytest.mark.zipfile
@@ -308,36 +307,34 @@ def test_empty_zip(
     empty_mock_path: Path,
     valid_cities: tuple[Cities, int],
     caplog: pytest.LogCaptureFixture
-):
+) -> None:
     """Test an empty zip file with a dataset folder present.
-    
+
     Tests
     -----
     - Warning is logged that no csv files could be found for each city.
     """
     tests = {}
-    with caplog.at_level(logging.WARNING):
-        with zipfile.ZipFile(empty_mock_path) as sec_zip:
+    with caplog.at_level(logging.WARNING), zipfile.ZipFile(empty_mock_path) as sec_zip:
             list(get_csvs(sec_zip, valid_cities[0]))
 
     tests["Issue is logged"] = (
         f"No csv files found for {valid_cities[1]}" in caplog.text
     )
 
-    for test, result in tests.items():
+    for result in tests.values():
         if not result:
-            print(f"{test}: {result}")
+            pass
 
     assert all(tests.values())
 
 
 def test_double_dataset_zip(
     double_dataset_mock_path: Path
-):
+) -> None:
     """"""
     with pytest.raises(
         ValueError,
         match="Zipfile contains multiple datasets: "
-    ):
-        with zipfile.ZipFile(double_dataset_mock_path) as sec_zip:
-            list(get_csvs(sec_zip, Cities.Antwerp))
+    ), zipfile.ZipFile(double_dataset_mock_path) as sec_zip:
+        list(get_csvs(sec_zip, Cities.Antwerp))

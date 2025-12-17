@@ -5,14 +5,11 @@ between tables. Includes unique, foreign key and not null constraints
 to the tables to maintain data integrity.
 """
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 
 from sqlalchemy import (
-    Column,
     ForeignKeyConstraint,
-    Integer,
     MetaData,
-    Sequence,
     UniqueConstraint
 )
 from sqlalchemy.engine.base import Engine
@@ -20,15 +17,15 @@ from sqlalchemy.types import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-class _Base_V1(DeclarativeBase):
-    type_annotation_map = {
+class _BaseV1(DeclarativeBase):
+    type_annotation_map: ClassVar[dict[type, Any]] = {
         dict[str, Any]: JSON
     }
     metadata = MetaData(schema="measurement")
 
 
 
-class DimDevice(_Base_V1):
+class DimDevice(_BaseV1):
     """Declarative mapping of dimension table representing LCS.
 
     This table is used to store information on all devices whose measurements
@@ -58,12 +55,12 @@ class DimDevice(_Base_V1):
     other: Mapped[dict[str, Any]] = mapped_column(nullable=True)
 
 
-class DimHeader(_Base_V1):
+class DimHeader(_BaseV1):
     """Declarative mapping of measurement headers dimension table.
 
     This table is used to store information on all measurement headers that
     represent measurements made within the database. Headers (e.g. ox_a431)
-    represent a measurement made by an ox_a431 sensor. The parameter it 
+    represent a measurement made by an ox_a431 sensor. The parameter it
     measures and the unit of measurement are stored with it.
 
     Schema name: **measurement**
@@ -86,7 +83,7 @@ class DimHeader(_Base_V1):
     other: Mapped[dict[str, Any]] = mapped_column(nullable=True)
 
 
-class DimUnitConversion(_Base_V1):
+class DimUnitConversion(_BaseV1):
     """Declarative mapping of unit_conversion dimension table.
 
     This table is used as a lookup for how to convert between different units.
@@ -117,7 +114,38 @@ class DimUnitConversion(_Base_V1):
     )
 
 
-class DimColocation(_Base_V1):
+class FactMeasurement(_BaseV1):
+    """Declarative mapping of measurements table.
+
+    Schema name: **measurement**
+
+    Table name: **fact_measurement**
+
+    Schema
+    ------
+    time [datetime, pk]: Time a measurement was made
+    device_key [str, pk]: The device making the measurement
+    measurements [JSON, not null]: Measurements recorded
+    flags [JSON]: Flags corresponding to the measurement
+    meta [JSON]: Other information
+    """
+
+    __tablename__ = "fact_measurement"
+
+    time: Mapped[datetime] = mapped_column(primary_key=True)
+    device_key: Mapped[str] = mapped_column(primary_key=True)
+    measurements: Mapped[dict[str, Any]] = mapped_column(nullable=False)
+    flags: Mapped[dict[str, Any]] = mapped_column(nullable=True)
+    meta: Mapped[dict[str, Any]] = mapped_column(nullable=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["device_key"],
+            ["dim_device.key"]
+        ),
+    )
+
+
+class DimColocation(_BaseV1):
     """Declarative mapping of co-location dimension table.
 
     This table is used to store information on periods a sensor is co-located
@@ -138,18 +166,10 @@ class DimColocation(_Base_V1):
 
     __tablename__ = "dim_colocation"
 
-    id_seq = Sequence('id_seq')
-    id = Column(
-        'id',
-        Integer,
-        id_seq,
-        server_default=id_seq.next_value(),
-        primary_key=True
-    )
-    device_key: Mapped[str] = mapped_column(nullable=False)
-    other_key: Mapped[str] = mapped_column(nullable=False)
-    start_date: Mapped[datetime] = mapped_column(nullable=False)
-    end_date: Mapped[datetime] = mapped_column(nullable=False)
+    device_key: Mapped[str] = mapped_column(primary_key=True)
+    other_key: Mapped[str] = mapped_column(primary_key=True)
+    start_date: Mapped[datetime] = mapped_column(primary_key=True)
+    end_date: Mapped[datetime] = mapped_column(primary_key=True)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -163,114 +183,20 @@ class DimColocation(_Base_V1):
     )
 
 
-class FactMeasurement(_Base_V1):
-    """Declarative mapping of measurement point fact table.
+class MetaFilesProcessed(_BaseV1):
+    """Declarative mapping of table containing files processed.
 
-    This table is used to log when a measurement is made by a single device at
-    a single point in time. The measurements made and any flags associated with
-    them are separated into **fact_value** and **fact_flag** respectively.
-
-    Schema name: **measurement**
-
-    Table name: **fact_measurement**
-
-    Schema
-    ------
-    - *point_hash* [str, pk] Hash of the *timestamp* and *code* columns.
-    - *timestamp* [datetime, not null]: The time the measurement was made.
-    - *code* [str, not null]: The code representing the measurement device.
-    """
-
-    __tablename__ = "fact_measurement"
-
-    point_hash: Mapped[str] = mapped_column(primary_key=True)
-    timestamp: Mapped[datetime] = mapped_column(nullable=False)
-    device_key: Mapped[str] = mapped_column(nullable=False)
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["device_key"],
-            ["dim_device.key"]
-        ),
-        UniqueConstraint("timestamp", "device_key")
-    )
-
-
-class FactValue(_Base_V1):
-    """Declarative mapping of measurement values fact table.
+    This table is used to store information on which files have already had
+    their measurements saved to the DB.
 
     Schema name: **measurement**
 
-    Table name: **fact_flag**
+    Table name: **meta_files_processed**
 
     Schema
     ------
-    - *point_hash* [str, not null]: Hash of the timestamp and sensor name.
-    - *flag* [str, not null]: The code of the flag.
-    - *value* [str, not null]: The value of the flag.
-
-    Foreign Keys
-    ------------
-    - point_hash: References the *point_hash* column in **fact_measurement** \
-        *N.B. This is a many-many relationship, one or both tables should be \
-        filtered prior to a join to reduce to a one-to-one or one-to-many.*
-    - header: References the *header* column in **dim_header**
-    """
-
-    __tablename__ = "fact_value"
-
-    point_hash: Mapped[str] = mapped_column(primary_key=True)
-    header: Mapped[str] = mapped_column(primary_key=True)
-    value: Mapped[float] = mapped_column(nullable=False)
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["point_hash"],
-            ["fact_measurement.point_hash"]
-        ),
-        ForeignKeyConstraint(
-            ["header"],
-            ["dim_header.header"]
-        )
-    )
-
-
-class FactFlag(_Base_V1):
-    """Declarative mapping of measurement flags fact table.
-
-    Schema name: **measurement**
-
-    Table name: **fact_flag**
-
-    Schema
-    ------
-    - *point_hash* [str, not null]: Hash of the timestamp and sensor name.
-    - *flag* [str, not null]: The code of the flag.
-    - *value* [str, not null]: The value of the flag.
-
-    Foreign Keys
-    ------------
-    - point_hash: References the *point_hash* column in **fact_measurement** \
-        *N.B. This is a many-many relationship, one or both tables should be \
-        filtered prior to a join to reduce to a one-to-one or one-to-many.*
-    """
-
-    __tablename__ = "fact_flag"
-
-    point_hash: Mapped[str] = mapped_column(primary_key=True)
-    flag: Mapped[str] = mapped_column(primary_key=True)
-    value: Mapped[str] = mapped_column(nullable=False)
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["point_hash"],
-            ["fact_measurement.point_hash"],
-        ),
-    )
-
-
-class MetaFilesProcessed(_Base_V1):
-    """
+    - *filename* [filename, pk]: The file that has been processed.
+    - *timestamp* [datetime]: When it was processed.
     """
 
     __tablename__ = "meta_files_processed"
@@ -280,5 +206,12 @@ class MetaFilesProcessed(_Base_V1):
 
 
 def create_tables(engine: Engine) -> None:
-    """"""
-    _Base_V1.metadata.create_all(engine)
+    """Create all tables in _BaseV1 ORM.
+
+    Parameters
+    ----------
+    engine : Engine
+        The SQLAlchemy engine connected to the DB.
+
+    """
+    _BaseV1.metadata.create_all(engine)

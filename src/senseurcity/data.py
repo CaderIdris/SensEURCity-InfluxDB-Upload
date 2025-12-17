@@ -1,78 +1,47 @@
+"""Transform the SensEURCity data."""
 from collections.abc import Generator
 from dataclasses import dataclass
 import datetime as dt
-import hashlib
 from importlib.resources import files
 import json
 import logging
-import re
 from typing import Self, TypedDict
 
 import numpy as np
 import pandas as pd
 
-_logger = logging.getLogger(f"__main__.{__name__}")
+_logger = logging.getLogger("SensEURCity-ETL")
 
 class MeasurementRecord(TypedDict):
-    """Expected structure of a dictionary returning a single measurement
-    period.
+    """Structure of a dictionary returning a single measurement period.
 
     Attributes
-    ------
-    point_hash : str
-        A hash of the timestamp and sensor name.
-    timestamp : dt.datetime
-        The timestamp of the measurement.
+    ----------
+    time : dt.datetime
+        The time the measurement was taken.
     device_key : str
-        The sensor name.
+        The device making the measurement.
+    measurements : dict[str, float]
+        The measurements made.
+    flags : dict[str, str]
+        The flags associated with the measurement.
+    meta : dict[str, float]
+        The metadata associated with the measurement.
+
     """
-    point_hash: str
-    timestamp: dt.datetime
+
+    time: dt.datetime
     device_key: str
-
-
-class ValueRecord(TypedDict):
-    """Expected structure of a dictionary returning a single value from a 
-    single measurement period.
-
-    Attributes
-    ------
-    point_hash : str
-        A hash of the timestamp and sensor name.
-    header : str
-        The measurement header.
-    device_key : float
-        The value of the measurement.
-    """
-    point_hash: str
-    header: str
-    value: float
-
-
-class FlagRecord(TypedDict):
-    """Expected structure of a dictionary returning a single flag from a 
-    single measurement period.
-
-    Attributes
-    ------
-    point_hash : str
-        A hash of the timestamp and sensor name.
-    flag : str
-        The flag name.
-    device_key : float
-        The value of the flag.
-    """
-    point_hash: str
-    flag: str
-    value: str
+    measurements: dict[str, float]
+    flags: dict[str, str] | None
+    meta: dict[str, float] | None
 
 
 class ColocationRecord(TypedDict):
-    """Expected structure of a dictionary returned as a single co-location
-    period.
+    """Structure of a dictionary returned as a single co-location period.
 
     Attributes
-    ------
+    ----------
     device_key : str
         The co-located device.
     other_key : str
@@ -81,7 +50,9 @@ class ColocationRecord(TypedDict):
         The start of the co-location (inclusive).
     end_date : pd.Timestamp
         The end of the co-location (inclusive).
+
     """
+
     device_key: str
     other_key: str
     start_date: pd.Timestamp
@@ -89,7 +60,7 @@ class ColocationRecord(TypedDict):
 
 
 class HeaderRecord(TypedDict):
-    """Expected structure of a dictionary returned as a single header record.
+    """Structure of a dictionary returned as a single header record.
 
     Attributes
     ----------
@@ -101,7 +72,9 @@ class HeaderRecord(TypedDict):
         The unit of measurement.
     other : dict[str, float | int | str]
         Any other information.
+
     """
+
     header: str
     parameter: str
     unit: str
@@ -125,7 +98,9 @@ class DeviceRecord(TypedDict):
         Is it a reference device?
     other: dict[str, float | int | str]
         Any other information.
+
     """
+
     key: str
     name: str
     short_name: str
@@ -147,7 +122,9 @@ class ConversionRecord(TypedDict):
         The parameter of the measurement (e.g. O3).
     scale : float
         How to convert the unit from one to the other.
+
     """
+
     unit_a: str
     unit_b: str
     parameter: str
@@ -175,10 +152,13 @@ class SensEURCityCSV:
     reference_cols : set[str]
         A collection of the column names that represent the reference
         measurements.
+
     """
+
     name: str
     csv: pd.DataFrame
     measurement_cols: set[str]
+    metadata_cols: set[str]
     flag_cols: set[str]
     reference_cols: set[str]
     date_col: str
@@ -190,7 +170,7 @@ class SensEURCityCSV:
         name: str,
         csv: pd.DataFrame,
         date_col: str = "date",
-        location_col: str = "Location.ID"
+        location_col: str = "Location.ID",
     ) -> Self:
         """Create an instance of the class from a DataFrame.
 
@@ -210,18 +190,13 @@ class SensEURCityCSV:
         ValueError
             If the specified date or location column are not present in the
             DataFrame.
+
         """
         # Check keyword arguments to ensure column is in csv and isn't protected
         if date_col not in csv.columns:
             err_msg = (
                 f"'{date_col}' is not present in {name}.csv. Expected a "
                 "valid name for the date column."
-            )
-            raise ValueError(err_msg)
-
-        if date_col in ("point_hash", "ref_point_hash"):
-            err_msg = (
-                f"date_col cannot be {date_col}, this is a protected name."
             )
             raise ValueError(err_msg)
 
@@ -232,63 +207,51 @@ class SensEURCityCSV:
             )
             raise ValueError(err_msg)
 
-        if location_col in ("point_hash", "ref_point_hash"):
-            err_msg = (
-                f"location_col cannot be {location_col}, this is a protected name."
-            )
-            raise ValueError(err_msg)
-
         _logger.info("Parsing records from %s", name)
 
         # Split columns into reference and flag columns
         reference_cols = {
             col for col in csv.columns
-            if "Ref." == col[:4]
-        } | {location_col}
+            if col[:4] == "Ref."
+        } - {
+            location_col,
+            "Ref.Lat",
+            "Ref.Long",
+        }
         _logger.info("%s reference columns found", len(reference_cols))
-        _logger.debug("Reference columns: %s", f'"{"", "".join(reference_cols)}"')
+        _logger.debug("Reference columns: %s", f'"{", ".join(reference_cols)}"')
 
         flag_cols = {
             col for col in csv.columns
-            if "_flag" == col[-5:]
+            if col[-5:] == "_flag"
         }
         _logger.info("%s flag columns found", len(flag_cols))
-        _logger.debug("Flag columns: %s", f'"{"", "".join(flag_cols)}"')
+        _logger.debug("Flag columns: %s", f'"{", ".join(flag_cols)}"')
 
 
-        # Determine measurement columns from what's left
-        measurement_cols = (
-            set(csv.columns) -
-            reference_cols -
-            flag_cols -
-            {date_col} - 
-            set(col for col in csv.columns if "OPCN3Bin" in col)
-        )
+        # Determine measurement columns
+        measurement_cols = {
+            col[:-5] for col in flag_cols if col[:-5] in csv.columns
+        }
         _logger.info("%s measurement columns found", len(measurement_cols))
-        _logger.debug("Measurement columns: %s", f'"{"", "".join(measurement_cols)}"')
+        _logger.debug("Measurement columns: %s", f'"{", ".join(measurement_cols)}"')
+
+
 
         # Parse date and calculate hash columns
         csv[date_col] = pd.to_datetime(csv[date_col], format="%Y-%m-%dT%H:%M:%SZ")
-        csv["point_hash"] = [
-            hashlib.sha256(
-                f"{name}{ts.timestamp()}".encode('utf-8'),
-                usedforsecurity=False
-            ).hexdigest()
-            for ts in csv[date_col].dt.to_pydatetime()
-        ]
-        csv["ref_point_hash"] = [
-            hashlib.sha256(
-                f"{row[1][location_col]}"
-                f"{row[1][date_col].to_pydatetime().timestamp()}"
-                .encode('utf-8'),
-                usedforsecurity=False
-            ).hexdigest() 
-            if row[1][location_col] == row[1][location_col]
-            else np.nan
-            for row in csv.iterrows()
-        ]
         csv = csv.set_index(date_col)
         csv.index.name = "date"
+
+        metadata_cols = (
+            set(csv.columns) -
+            reference_cols -
+            flag_cols -
+            measurement_cols -
+            {location_col}
+        )
+        _logger.info("%s metadata columns found", len(metadata_cols))
+        _logger.debug("Metadata columns: %s", f'"{", ".join(metadata_cols)}"')
 
         return cls(
             name=name,
@@ -296,74 +259,101 @@ class SensEURCityCSV:
             measurement_cols=measurement_cols,
             flag_cols=flag_cols,
             reference_cols=reference_cols,
+            metadata_cols=metadata_cols,
             date_col=date_col,
             location_col=location_col
         )
-    
+
     @property
     def measurements(self) -> Generator[MeasurementRecord]:
-        """Set of records representing measurement intervals of a single
-        device.
+        """Set of records representing device measurements and flags.
 
         Represents an iterator containing dictionaries with the following keys:
 
-        - **point_hash** : str
-        - **timestamp** : dt.datetime
+        - **time** : dt.datetime
         - **device_key** : str
+        - **measurements** : dict[str, float]
+        - **flags** : dict[str, str]
+        - **meta** : dict[str, float]
         """
         _logger.info("Querying measurements for %s", self.name)
-        csv_subset = self.csv.loc[:, ["point_hash"]]
-        csv_subset["timestamp"] = csv_subset.index
-        csv_subset["device_key"] = self.name
+        measurements = self.csv.loc[
+            :, tuple(self.measurement_cols)
+        ]
+        measurements.columns = pd.MultiIndex.from_product(
+            [["measurements"], measurements.columns]
+        )
 
-        for record in csv_subset.iterrows():
-            yield record[1].to_dict()
+        flags = self.csv.loc[:, tuple(self.flag_cols)]
+        flags = flags.fillna("Valid")
+        flags.columns = pd.MultiIndex.from_product(
+            [["flags"], flags.columns]
+        )
+
+        metadata = self.csv.loc[:, tuple(self.metadata_cols)]
+        metadata.columns = pd.MultiIndex.from_product(
+            [["meta"], metadata.columns]
+        )
+
+
+        csv_subset = measurements.join(flags)
+        csv_subset = csv_subset.join(metadata)
+        csv_subset[("index", "time")] = measurements.index
+        csv_subset[("index", "device_key")] = self.name
+
+        for _, record in csv_subset.iterrows():
+            row: MeasurementRecord =  {
+                "time": record[("index", "time")].to_pydatetime(),
+                "device_key": record[("index", "device_key")],
+                "measurements": record["measurements"].dropna().to_dict(),
+                "flags": record["flags"].to_dict(),
+                "meta": record["meta"].dropna().to_dict()
+            }
+            if not row["measurements"]:
+                continue
+            yield row
 
     @property
-    def values(self) -> Generator[ValueRecord]:
-        """Set of records representing a single measurement at a single
-        interval of a single device.
+    def reference_measurements(self) -> Generator[MeasurementRecord]:
+        """Set of records representing reference measurements.
 
         Represents an iterator containing dictionaries with the following keys:
 
-        - **point_hash** : str
-        - **header** : str
-        - **value** : float
+        - **time** : dt.datetime
+        - **device_key** : str
+        - **measurements** : dict[str, float]
+        - **flags** : None
+        - **meta** : None
         """
-        _logger.info("Querying measurement values for %s", self.name)
-        csv_subset = self.csv.loc[:, (*self.measurement_cols, "point_hash")]
-        csv_subset = csv_subset.melt(
-            var_name="header",
-            value_name="value",
-            id_vars="point_hash"
-        ).dropna(subset="value")
-        csv_subset["header"] = csv_subset["header"].str.replace('.', '_')
-        for record in csv_subset.iterrows():
-            yield record[1].to_dict()
-    
-    @property
-    def flags(self) -> Generator[FlagRecord]:
-        """Set of records representing a single measurement flag at a single
-        interval of a single device.
-
-        Represents an iterator containing dictionaries with the following keys:
-
-        - **point_hash** : str
-        - **flag** : str
-        - **value** : str
-        """
-        _logger.info("Querying measurement flags for %s", self.name)
-        csv_subset = self.csv.loc[:, (*self.flag_cols, "point_hash")]
-        csv_subset = csv_subset.melt(
-            var_name="flag",
-            value_name="value",
-            id_vars="point_hash"
-        ).dropna(subset="value")
-
-        # for record in csv_subset.to_dict('records'):
-        #     yield record
-        for record in csv_subset.iterrows():
-            yield record[1].to_dict()
+        _logger.info("Querying reference measurements for %s", self.name)
+        csv_subset = self.csv.loc[
+            :, (*self.reference_cols, self.location_col)
+        ].dropna(subset=self.location_col)
+        repeated = np.logical_and(
+            csv_subset[list(self.reference_cols)].eq(
+                csv_subset[list(self.reference_cols)].shift(-1)
+            ),
+            csv_subset[list(self.reference_cols)].eq(
+                csv_subset[list(self.reference_cols)].shift(-2)
+            ),
+            csv_subset[list(self.reference_cols)].eq(
+                csv_subset[list(self.reference_cols)].shift(-3)
+            ),
+        )
+        csv_subset[repeated] = np.nan
+        csv_subset["time"] = csv_subset.index
+        csv_subset = csv_subset.rename(columns={self.location_col: "device_key"})
+        for _, record in csv_subset.iterrows():
+            row: MeasurementRecord = {
+                "time": record["time"].to_pydatetime(),
+                "device_key": record["device_key"],
+                "measurements": record[list(self.reference_cols)].dropna().to_dict(),
+                "flags": None,
+                "meta": None
+            }
+            if not row["measurements"]:
+                continue
+            yield row
 
     @property
     def colocation(self) -> Generator[ColocationRecord]:
@@ -385,7 +375,7 @@ class SensEURCityCSV:
                 .reset_index()
         )
         break_point = (
-                csv_subset[self.location_col] != 
+                csv_subset[self.location_col] !=
                 csv_subset[self.location_col].shift(1)
         )
         changed_rows = csv_subset[break_point].reset_index()
@@ -419,94 +409,6 @@ class SensEURCityCSV:
         for record in grouped.iterrows():
             yield record[1].to_dict()
 
-    @property
-    def reference_measurements(self) -> Generator[MeasurementRecord]:
-        """Set of records representing measurement intervals of a single
-        reference device.
-
-        Represents an iterator containing dictionaries with the following keys:
-
-        - **point_hash** : str
-        - **timestamp** : dt.datetime
-        - **device_key** : str
-        """
-        _logger.info("Querying reference measurements for %s", self.name)
-        csv_subset = (
-            self.csv
-            .loc[:, [self.location_col, "ref_point_hash"]]
-            .dropna(
-                subset=self.location_col
-            )
-            .rename({
-                self.location_col: "device_key",
-                "ref_point_hash": "point_hash"
-            }, axis=1)
-        )
-        csv_subset["timestamp"] = csv_subset.index
-
-        # for record in csv_subset.to_dict('records'):
-        #     yield record
-        for record in csv_subset.iterrows():
-            yield record[1].to_dict()
-
-    @property
-    def reference_values(self) -> Generator[ValueRecord]:
-        """Set of records representing measurement intervals of a single
-        reference device.
-
-        Represents an iterator containing dictionaries with the following keys:
-
-        - **point_hash** : str
-        - **timestamp** : dt.datetime
-        - **device_key** : str
-        """
-        _logger.info("Querying reference measurement values for %s", self.name)
-        measurement_match = re.compile(r"Ref\.(?:(?:NO)|(?:CO)|(?:O)|(?:PM))")
-        # One of the Antwerp devices isn't prefixed with ANT, so we need to
-        # match this to Antwerp
-        city_match = {
-            "ANT": "ANT",
-            "VIT": "ANT",
-            "OSL": "OSL",
-            "ZAG": "ZAG",
-            "Isp": "ISP"
-        }
-        csv_subset = (
-            self.csv
-            .loc[:, [
-                *self.reference_cols,
-                "ref_point_hash",
-            ]]
-            .dropna(
-                subset="ref_point_hash"
-            )
-            .rename({"ref_point_hash": "point_hash"}, axis=1)
-        )
-        csv_subset = csv_subset.melt(
-            var_name="header",
-            value_name="value",
-            id_vars=("point_hash", self.location_col)
-        ).dropna(subset="value")
-
-        repeated = np.logical_and(
-            csv_subset["value"].eq(csv_subset["value"].shift(1)),
-            csv_subset["header"].eq(csv_subset["header"].shift(1))
-        )
-        csv_subset = csv_subset[~repeated]
-
-        csv_subset["header"] = csv_subset.apply(
-            lambda x: (
-                    f"{x['header'].replace('.', '_')}_{city_match[x[self.location_col][:3]]}"
-                    if re.match(measurement_match, x['header']) else
-                    x['header'].replace('.', '_')
-            ),
-            axis=1
-        )
-        csv_subset = csv_subset.drop(self.location_col, axis=1)
-
-        for record in csv_subset.to_dict('records'):
-            yield record
-
 
 def get_header_records() -> Generator[HeaderRecord]:
     """Return contents of header json file.
@@ -514,6 +416,7 @@ def get_header_records() -> Generator[HeaderRecord]:
     Yields
     ------
     HeaderRecord representing a header within the dataset.
+
     """
     _logger.info("Querying measurement header information")
     header_file = files("senseurcity.files.json").joinpath("header.json")
@@ -536,6 +439,7 @@ def get_device_records() -> Generator[DeviceRecord]:
     Yields
     ------
     DeviceRecord representing a device within the dataset.
+
     """
     _logger.info("Querying device information")
     device_file = files("senseurcity.files.json").joinpath("devices.json")
@@ -560,6 +464,7 @@ def get_unit_conversion_records() -> Generator[ConversionRecord]:
     Yields
     ------
     ConversionRecord representing a unit conversion.
+
     """
     _logger.info("Querying unit conversion")
     conversion_file = (
@@ -567,6 +472,5 @@ def get_unit_conversion_records() -> Generator[ConversionRecord]:
     )
     with conversion_file.open("r") as conversion_json:
         conversion_info = json.load(conversion_json)
-    for json_l in conversion_info:
-        yield json_l
+    yield from conversion_info
 

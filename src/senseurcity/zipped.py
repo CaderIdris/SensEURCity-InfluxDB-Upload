@@ -19,11 +19,12 @@ import pandas as pd
 import requests
 import requests.exceptions as rqexc
 
-_logger = logging.getLogger(f'__main__.{__name__}')
+_logger = logging.getLogger(f"__main__.{__name__}")
 
 
 class Cities(Flag):
     """Represent the three cities used in the study."""
+
     Antwerp = auto()
     Oslo = auto()
     Zagreb = auto()
@@ -50,26 +51,27 @@ def download_data(
     -------
     - Path object pointing to downloaded file if successful
     - None if HTTPError encountered
+
     """
     if download_path.exists() and not ignore_file_exists:
         _logger.info("File already exists, skipping download.")
         return download_path
-    elif download_path.exists() and ignore_file_exists:
+    if download_path.exists() and ignore_file_exists:
         _logger.info("File already exists, replacing file contents.")
 
     _logger.info("Downloading dataset from %s", download_url)
-    response = requests.get(download_url)
+    response = requests.get(download_url, timeout=15)
 
     download_folder = download_path / ".."
     download_folder.resolve().mkdir(parents=True, exist_ok=True)
-    
+
     try:
         response.raise_for_status()
     except rqexc.HTTPError as exc:
         err_msg = f"HTTP Error: {exc}"
-        _logger.error(err_msg)
+        _logger.exception(err_msg)
         return None
-    
+
     with download_path.open("wb") as file:
         _logger.debug("Writing content to %s", download_path)
         file.write(response.content)
@@ -77,22 +79,12 @@ def download_data(
     return download_path
 
 
-def get_csvs(
-    zip_file: ZipFile,
-    city: Cities,
-) -> Generator[tuple[str, pd.DataFrame]]:
-    """Iteratively return the csvs of measurements for a single city.
-    
-    Parameters
-    ----------
-    zip_file : ZipFile
-        The zipfile containing the SensEURCity data.
-    city : Cities
-        The city to download data from.
-    """
+def _get_prefix(city: Cities) -> str:
+    """Get file prefix for csv files."""
     if len(list(city)) > 1:
-        raise ValueError("Multiple cities given. Please choose one.")
-    elif city == Cities.Antwerp:
+        msg = "Multiple cities given. Please choose one."
+        raise ValueError(msg)
+    if city == Cities.Antwerp:
         _logger.info("Iterating over Antwerp data")
         prefix = "Antwerp_*.csv"
     elif city == Cities.Oslo:
@@ -102,16 +94,37 @@ def get_csvs(
         _logger.info("Iterating over Zagreb data")
         prefix = "Zagreb_*.csv"
     else:
-        raise ValueError(
+        msg = (  # type: ignore[unreachable]
             "Unexpected city given. "
             "Please choose from Antwerp, Oslo or Zagreb"
         )
+        raise ValueError(
+            msg
+        )
+    return prefix
+
+
+def get_csvs(
+    zip_file: ZipFile,
+    city: Cities,
+) -> Generator[tuple[str, pd.DataFrame]]:
+    """Iterate and return the csvs of measurements for a single city.
+
+    Parameters
+    ----------
+    zip_file : ZipFile
+        The zipfile containing the SensEURCity data.
+    city : Cities
+        The city to download data from.
+
+    """
+    prefix = _get_prefix(city)
     zip_path = ZipPath(zip_file, at="dataset/")
     if not zip_path.exists():
         root_path = ZipPath(zip_file)
         subfolders = [
             subfolder.name for subfolder in root_path.iterdir()
-            if "senseurcity_data_v" in subfolder.name 
+            if "senseurcity_data_v" in subfolder.name
             or "dataset" in subfolder.name
         ]
         if len(subfolders) > 1:
@@ -121,9 +134,12 @@ def get_csvs(
             )
             raise ValueError(err)
         elif len(subfolders) < 1:
-            raise FileNotFoundError(
+            msg = (
                 "'dataset' folder missing from provided zip file. "
                 "Redownload or choose correct zip file."
+            )
+            raise FileNotFoundError(
+                msg
             )
         elif len(subfolders) == 1:
             zip_path = ZipPath(
