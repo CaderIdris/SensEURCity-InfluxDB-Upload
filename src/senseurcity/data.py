@@ -495,7 +495,6 @@ class SensEURCityCSV:
                 }
                 for header in sub_df_headers
             ])
-        print(device_headers)
         yield from device_headers
 
 

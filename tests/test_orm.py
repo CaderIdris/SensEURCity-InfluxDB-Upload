@@ -558,109 +558,7 @@ def test_bridge_device_header(
         )
         conn.commit()
 
-    good_data = [
-        {
-            "device_key": "ANT_123456_TEST_BDH",
-            "header": "ox_test_BDH",
-            "flag": "ox_test_BDH_flag"
-        },
-        {
-            "device_key": "ANT_123456_TEST_BDH",
-            "header": "no_test_BDH",
-            "flag": None
-        },
-        {
-            "device_key": "ANT_123567_TEST_BDH",
-            "header": "ox_test_BDH",
-            "flag": None
-        }
-    ]
-    expected_pks = (
-        ("ANT_123456_TEST_BDH", "ox_test_BDH"),
-        ("ANT_123456_TEST_BDH", "no_test_BDH"),
-        ("ANT_123567_TEST_BDH", "ox_test_BDH")
-    )
-    insert_statement = insert(orm.BridgeDeviceHeaders)
-    with db_engine.connect() as conn:
-        result = conn.execute(
-            insert_statement,
-            good_data
-        )
-        conn.commit()
-        pks = tuple(result.inserted_primary_key_rows)
-
-    tests["Rows inserted"] = pks == expected_pks
-
-    for outcome in tests.values():
-        if not outcome:
-            pass
-
-    assert all(tests.values())
-
-
-@pytest.mark.orm
-@pytest.mark.base_v1
-@pytest.mark.parametrize("db", list(DBs))
-def test_bridge_device_header(
-    db: DBs,
-    connections: dict[DBs, Engine | None],
-) -> None:
-    """
-    """
-    db_engine = connections.get(db)
-    if db_engine is None:
-        pytest.skip()
-
-    tests: dict[str, bool] = {}
-    ddevice_prep = [
-        {
-            "key": "ANT_123456_TEST_BDH",
-            "dataset": "test_TEST_BDH",
-            "name": "Antwerp 1_TEST_BDH",
-            "short_name": "A1_TEST_BDH",
-            "reference": False,
-            "other": {"key": "value"}
-        },
-        {
-            "key": "ANT_123567_TEST_BDH",
-            "dataset": "test_TEST_BDH",
-            "name": "Antwerp 2_TEST_BDH",
-            "short_name": "A2_TEST_BDH",
-            "reference": False,
-            "other": None
-        },
-    ]
-    ddev_insert = insert(orm.DimDevice)
-    with db_engine.connect() as conn:
-        _ = conn.execute(
-            ddev_insert,
-            ddevice_prep
-        )
-        conn.commit()
-
-    dheader_prep: list[dict[str, str | None | dict[str, str]]] = [
-        {
-            "header": "ox_test_BDH",
-            "parameter": "ox",
-            "unit": "nA",
-            "other": None
-        },
-        {
-            "header": "no_test_BDH",
-            "parameter": "no",
-            "unit": "nA",
-            "other": {"key": "value"}
-        }
-    ]
-    dhead_insert = insert(orm.DimHeader)
-    with db_engine.connect() as conn:
-        _ = conn.execute(
-            dhead_insert,
-            dheader_prep
-        )
-        conn.commit()
-
-    good_data = [
+    good_data: list[dict[str, str | None]] = [
         {
             "device_key": "ANT_123456_TEST_BDH",
             "header": "ox_test_BDH",
@@ -761,16 +659,14 @@ def test_bridge_device_header_dupe(
         },
     ]
     insert_statement = insert(orm.BridgeDeviceHeaders)
-    with db_engine.connect() as conn:
-        print(ins_data)
-        with pytest.raises(
-            sqlexc.IntegrityError,
-            match=violation_messages[db]["Unique"]
-        ):
-            _ = conn.execute(
-                insert_statement,
-                ins_data
-            )
+    with db_engine.connect() as conn, pytest.raises(
+        sqlexc.IntegrityError,
+        match=violation_messages[db]["Unique"]
+    ):
+        _ = conn.execute(
+            insert_statement,
+            ins_data
+        )
 
 
 @pytest.mark.orm
@@ -830,16 +726,14 @@ def test_bridge_device_header_null(
     }
     ins_data[col_to_null] = None
     insert_statement = insert(orm.BridgeDeviceHeaders)
-    with db_engine.connect() as conn:
-        print(ins_data)
-        with pytest.raises(
-            sqlexc.IntegrityError,
-            match=violation_messages[db]["Null"]
-        ):
-            _ = conn.execute(
-                insert_statement,
-                ins_data
-            )
+    with db_engine.connect() as conn, pytest.raises(
+        sqlexc.IntegrityError,
+        match=violation_messages[db]["Null"]
+    ):
+        _ = conn.execute(
+            insert_statement,
+            ins_data
+        )
 
 
 @pytest.mark.orm
@@ -899,16 +793,14 @@ def test_bridge_device_header_fkey(
     }
     ins_data[col_to_change] = "BAD KEY"
     insert_statement = insert(orm.BridgeDeviceHeaders)
-    with db_engine.connect() as conn:
-        print(ins_data)
-        with pytest.raises(
-            sqlexc.IntegrityError,
-            match=violation_messages[db]["Foreign"]
-        ):
-            _ = conn.execute(
-                insert_statement,
-                ins_data
-            )
+    with db_engine.connect() as conn, pytest.raises(
+        sqlexc.IntegrityError,
+        match=violation_messages[db]["Foreign"]
+    ):
+        _ = conn.execute(
+            insert_statement,
+            ins_data
+        )
 
 
 @pytest.mark.orm

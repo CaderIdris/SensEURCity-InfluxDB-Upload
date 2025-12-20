@@ -286,7 +286,7 @@ def test_get_device_headers() -> None:
     """
     tests = {}
 
-    csv_path = Path(f"./tests/test_zipped/Antwerp_402B00.csv")
+    csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
     csv = pd.read_csv(csv_path)
 
     csv_dataclass = SensEURCityCSV.from_dataframe(
@@ -295,8 +295,6 @@ def test_get_device_headers() -> None:
     )
     records = list(csv_dataclass.device_headers)
     df = pd.DataFrame(records)
-    print(df)
-
 
     tests["Correct num of headers"] = df.shape[0] == 18
 
@@ -320,7 +318,7 @@ def test_get_ref_headers() -> None:
     """
     tests = {}
 
-    csv_path = Path(f"./tests/test_zipped/Antwerp_402B00.csv")
+    csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
     csv = pd.read_csv(csv_path)
 
     csv_dataclass = SensEURCityCSV.from_dataframe(
@@ -432,7 +430,7 @@ def test_location_id_format(loc_id) -> None:
     parsed_csv = csv_dataclass.csv
 
     tests["Correct num of cols"] = (
-            set(parsed_csv["Location.ID"].unique()) == {'This_is_bad',}
+            set(parsed_csv["Location.ID"].unique()) == {"This_is_bad",}
     )
 
     for result in tests.values():
