@@ -82,6 +82,58 @@ class DimHeader(_BaseV1):
     unit: Mapped[str] = mapped_column(nullable=False)
     other: Mapped[dict[str, Any]] = mapped_column(nullable=True)
 
+class BridgeDeviceHeaders(_BaseV1):
+    """Declarative mapping of the headers corresponding to a device table.
+
+    This table is used to store all headers that a device uses. This can be
+    used as a lookup to see which headers represent which measured pollutant.
+
+    **Relationship between device and header used to measure specific parameter:**
+    ```mermaid
+    graph TD;
+        A[dim_device];
+        B[bridge_device_headers];
+        C[dim_header];
+        A--dim_device.key = bridge_device_headers.device_key-->B;
+        B--bridge_device_headers.header = dim_header.header-->C;
+
+        style A fill:#458588,stroke:#0d0e0f,color:#dedede;
+        style B fill:#7fa2ac,stroke:#0d0e0f,color:#dedede;
+        style C fill:#458588,stroke:#0d0e0f,color:#dedede;
+
+    ```
+    This relationship can be used to look up:
+    - Which devices measure a certain parameter.
+    - Inversely, which parameters a device measures.
+    - Which header is used to measure a certain parameter.
+
+    Schema name: **measurement**
+
+    Table name: **bridge_device_headers**
+
+    Schema
+    ------
+    - *device_key* [str, pk]: The device.
+    - *header* [str, pk]: The measurement header.
+    - *flag* [str]: A flag associated with the header.
+    """
+
+    __tablename__ = "bridge_device_headers"
+
+    device_key: Mapped[str] = mapped_column(primary_key=True)
+    header: Mapped[str] = mapped_column(primary_key=True)
+    flag: Mapped[str] = mapped_column(nullable=True)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["device_key"],
+            ["dim_device.key"]
+        ),
+        ForeignKeyConstraint(
+            ["header"],
+            ["dim_header.header"]
+        )
+    )
 
 class DimUnitConversion(_BaseV1):
     """Declarative mapping of unit_conversion dimension table.

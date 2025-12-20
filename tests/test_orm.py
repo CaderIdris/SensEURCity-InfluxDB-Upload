@@ -58,7 +58,8 @@ def violation_messages():
         DBs.DuckDB: {
             "Unique": (
                 "violates primary key constraint|"
-                "violates unique constraint"
+                "violates unique constraint|"
+                "Constraint Error: PRIMARY KEY or UNIQUE constraint"
             ),
             "Null": "NOT NULL constraint failed",
             "Foreign": "Violates foreign key constraint"
@@ -89,6 +90,7 @@ def test_alt_schema(db_path: Path) -> None:
         "fact_measurement",
         "dim_colocation",
         "meta_files_processed",
+        "bridge_device_headers"
     )
 
     for table in expected_tables:
@@ -135,6 +137,7 @@ def test_create_tables(db: DBs, connections: dict[DBs, Engine | None]) -> None:
         "fact_measurement",
         "dim_colocation",
         "meta_files_processed",
+        "bridge_device_headers"
     )
 
     for table in expected_tables:
@@ -490,6 +493,421 @@ def test_dim_header_null(
             _ = conn.execute(
                 insert_statement,
                 [nulled]
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.base_v1
+@pytest.mark.parametrize("db", list(DBs))
+def test_bridge_device_header(
+    db: DBs,
+    connections: dict[DBs, Engine | None],
+) -> None:
+    """
+    """
+    db_engine = connections.get(db)
+    if db_engine is None:
+        pytest.skip()
+
+    tests: dict[str, bool] = {}
+    ddevice_prep = [
+        {
+            "key": "ANT_123456_TEST_BDH",
+            "dataset": "test_TEST_BDH",
+            "name": "Antwerp 1_TEST_BDH",
+            "short_name": "A1_TEST_BDH",
+            "reference": False,
+            "other": {"key": "value"}
+        },
+        {
+            "key": "ANT_123567_TEST_BDH",
+            "dataset": "test_TEST_BDH",
+            "name": "Antwerp 2_TEST_BDH",
+            "short_name": "A2_TEST_BDH",
+            "reference": False,
+            "other": None
+        },
+    ]
+    ddev_insert = insert(orm.DimDevice)
+    with db_engine.connect() as conn:
+        _ = conn.execute(
+            ddev_insert,
+            ddevice_prep
+        )
+        conn.commit()
+
+    dheader_prep: list[dict[str, str | None | dict[str, str]]] = [
+        {
+            "header": "ox_test_BDH",
+            "parameter": "ox",
+            "unit": "nA",
+            "other": None
+        },
+        {
+            "header": "no_test_BDH",
+            "parameter": "no",
+            "unit": "nA",
+            "other": {"key": "value"}
+        }
+    ]
+    dhead_insert = insert(orm.DimHeader)
+    with db_engine.connect() as conn:
+        _ = conn.execute(
+            dhead_insert,
+            dheader_prep
+        )
+        conn.commit()
+
+    good_data = [
+        {
+            "device_key": "ANT_123456_TEST_BDH",
+            "header": "ox_test_BDH",
+            "flag": "ox_test_BDH_flag"
+        },
+        {
+            "device_key": "ANT_123456_TEST_BDH",
+            "header": "no_test_BDH",
+            "flag": None
+        },
+        {
+            "device_key": "ANT_123567_TEST_BDH",
+            "header": "ox_test_BDH",
+            "flag": None
+        }
+    ]
+    expected_pks = (
+        ("ANT_123456_TEST_BDH", "ox_test_BDH"),
+        ("ANT_123456_TEST_BDH", "no_test_BDH"),
+        ("ANT_123567_TEST_BDH", "ox_test_BDH")
+    )
+    insert_statement = insert(orm.BridgeDeviceHeaders)
+    with db_engine.connect() as conn:
+        result = conn.execute(
+            insert_statement,
+            good_data
+        )
+        conn.commit()
+        pks = tuple(result.inserted_primary_key_rows)
+
+    tests["Rows inserted"] = pks == expected_pks
+
+    for outcome in tests.values():
+        if not outcome:
+            pass
+
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.base_v1
+@pytest.mark.parametrize("db", list(DBs))
+def test_bridge_device_header(
+    db: DBs,
+    connections: dict[DBs, Engine | None],
+) -> None:
+    """
+    """
+    db_engine = connections.get(db)
+    if db_engine is None:
+        pytest.skip()
+
+    tests: dict[str, bool] = {}
+    ddevice_prep = [
+        {
+            "key": "ANT_123456_TEST_BDH",
+            "dataset": "test_TEST_BDH",
+            "name": "Antwerp 1_TEST_BDH",
+            "short_name": "A1_TEST_BDH",
+            "reference": False,
+            "other": {"key": "value"}
+        },
+        {
+            "key": "ANT_123567_TEST_BDH",
+            "dataset": "test_TEST_BDH",
+            "name": "Antwerp 2_TEST_BDH",
+            "short_name": "A2_TEST_BDH",
+            "reference": False,
+            "other": None
+        },
+    ]
+    ddev_insert = insert(orm.DimDevice)
+    with db_engine.connect() as conn:
+        _ = conn.execute(
+            ddev_insert,
+            ddevice_prep
+        )
+        conn.commit()
+
+    dheader_prep: list[dict[str, str | None | dict[str, str]]] = [
+        {
+            "header": "ox_test_BDH",
+            "parameter": "ox",
+            "unit": "nA",
+            "other": None
+        },
+        {
+            "header": "no_test_BDH",
+            "parameter": "no",
+            "unit": "nA",
+            "other": {"key": "value"}
+        }
+    ]
+    dhead_insert = insert(orm.DimHeader)
+    with db_engine.connect() as conn:
+        _ = conn.execute(
+            dhead_insert,
+            dheader_prep
+        )
+        conn.commit()
+
+    good_data = [
+        {
+            "device_key": "ANT_123456_TEST_BDH",
+            "header": "ox_test_BDH",
+            "flag": "ox_test_BDH_flag"
+        },
+        {
+            "device_key": "ANT_123456_TEST_BDH",
+            "header": "no_test_BDH",
+            "flag": None
+        },
+        {
+            "device_key": "ANT_123567_TEST_BDH",
+            "header": "ox_test_BDH",
+            "flag": None
+        }
+    ]
+    expected_pks = (
+        ("ANT_123456_TEST_BDH", "ox_test_BDH"),
+        ("ANT_123456_TEST_BDH", "no_test_BDH"),
+        ("ANT_123567_TEST_BDH", "ox_test_BDH")
+    )
+    insert_statement = insert(orm.BridgeDeviceHeaders)
+    with db_engine.connect() as conn:
+        result = conn.execute(
+            insert_statement,
+            good_data
+        )
+        conn.commit()
+        pks = tuple(result.inserted_primary_key_rows)
+
+    tests["Rows inserted"] = pks == expected_pks
+
+    for outcome in tests.values():
+        if not outcome:
+            pass
+
+    assert all(tests.values())
+
+
+@pytest.mark.orm
+@pytest.mark.base_v1
+@pytest.mark.parametrize("db", list(DBs))
+def test_bridge_device_header_dupe(
+    db: DBs,
+    violation_messages: dict[DBs, dict[str, str]],
+    connections: dict[DBs, Engine | None]
+) -> None:
+    """
+    """
+    db_engine = connections.get(db)
+    if db_engine is None:
+        pytest.skip()
+
+    ddevice_prep = [
+        {
+            "key": "bdh_dupe_test",
+            "dataset": "test_TEST_BDH",
+            "name": "bdh_dupe_test",
+            "short_name": "bdh_dupe_test",
+            "reference": False,
+            "other": {"key": "value"}
+        },
+    ]
+    ddev_insert = insert(orm.DimDevice)
+    with db_engine.connect() as conn:
+        _ = conn.execute(
+            ddev_insert,
+            ddevice_prep
+        )
+        conn.commit()
+
+    dheader_prep: list[dict[str, str | None | dict[str, str]]] = [
+        {
+            "header": "bdh_dupe_test",
+            "parameter": "ox",
+            "unit": "nA",
+            "other": None
+        },
+    ]
+    dhead_insert = insert(orm.DimHeader)
+    with db_engine.connect() as conn:
+        _ = conn.execute(
+            dhead_insert,
+            dheader_prep
+        )
+        conn.commit()
+
+    ins_data = [
+        {
+            "device_key": "bdh_dupe_test",
+            "header": "bdh_dupe_test",
+            "flag": "ox_test_BDH_flag"
+        },
+        {
+            "device_key": "bdh_dupe_test",
+            "header": "bdh_dupe_test",
+            "flag": "ox_test_BDH_flag"
+        },
+    ]
+    insert_statement = insert(orm.BridgeDeviceHeaders)
+    with db_engine.connect() as conn:
+        print(ins_data)
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=violation_messages[db]["Unique"]
+        ):
+            _ = conn.execute(
+                insert_statement,
+                ins_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.base_v1
+@pytest.mark.parametrize("db", list(DBs))
+@pytest.mark.parametrize("col_to_null", ["device_key", "header"])
+def test_bridge_device_header_null(
+    db: DBs,
+    violation_messages: dict[DBs, dict[str, str]],
+    col_to_null: str,
+    connections: dict[DBs, Engine | None],
+) -> None:
+    """
+    """
+    db_engine = connections.get(db)
+    if db_engine is None:
+        pytest.skip()
+
+    ddevice_prep = [
+        {
+            "key": f"bdh_null_test_{col_to_null}",
+            "dataset": f"test_TEST_BDH_{col_to_null}",
+            "name": f"bdh_null_test_{col_to_null}",
+            "short_name": f"bdh_null_test_{col_to_null}",
+            "reference": False,
+            "other": {"key": "value"}
+        },
+    ]
+    ddev_insert = insert(orm.DimDevice)
+    with db_engine.connect() as conn:
+        _ = conn.execute(
+            ddev_insert,
+            ddevice_prep
+        )
+        conn.commit()
+
+    dheader_prep: list[dict[str, str | None | dict[str, str]]] = [
+        {
+            "header": f"bdh_null_test_{col_to_null}",
+            "parameter": "ox",
+            "unit": "nA",
+            "other": None
+        },
+    ]
+    dhead_insert = insert(orm.DimHeader)
+    with db_engine.connect() as conn:
+        _ = conn.execute(
+            dhead_insert,
+            dheader_prep
+        )
+        conn.commit()
+
+    ins_data = {
+        "device_key": f"bdh_null_test_{col_to_null}",
+        "header": f"bdh_null_test_{col_to_null}",
+        "flag": None
+    }
+    ins_data[col_to_null] = None
+    insert_statement = insert(orm.BridgeDeviceHeaders)
+    with db_engine.connect() as conn:
+        print(ins_data)
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=violation_messages[db]["Null"]
+        ):
+            _ = conn.execute(
+                insert_statement,
+                ins_data
+            )
+
+
+@pytest.mark.orm
+@pytest.mark.base_v1
+@pytest.mark.parametrize("db", list(DBs))
+@pytest.mark.parametrize("col_to_change", ["device_key", "header"])
+def test_bridge_device_header_fkey(
+    db: DBs,
+    violation_messages: dict[DBs, dict[str, str]],
+    col_to_change: str,
+    connections: dict[DBs, Engine | None],
+) -> None:
+    """
+    """
+    db_engine = connections.get(db)
+    if db_engine is None:
+        pytest.skip()
+
+    ddevice_prep = [
+        {
+            "key": f"bdh_fkey_test_{col_to_change}",
+            "dataset": f"test_TEST_BDH_{col_to_change}",
+            "name": f"bdh_fkey_test_{col_to_change}",
+            "short_name": f"bdh_fkey_test_{col_to_change}",
+            "reference": False,
+            "other": {"key": "value"}
+        },
+    ]
+    ddev_insert = insert(orm.DimDevice)
+    with db_engine.connect() as conn:
+        _ = conn.execute(
+            ddev_insert,
+            ddevice_prep
+        )
+        conn.commit()
+
+    dheader_prep: list[dict[str, str | None | dict[str, str]]] = [
+        {
+            "header": f"bdh_fkey_test_{col_to_change}",
+            "parameter": "ox",
+            "unit": "nA",
+            "other": None
+        },
+    ]
+    dhead_insert = insert(orm.DimHeader)
+    with db_engine.connect() as conn:
+        _ = conn.execute(
+            dhead_insert,
+            dheader_prep
+        )
+        conn.commit()
+
+    ins_data = {
+        "device_key": f"bdh_fkey_test_{col_to_change}",
+        "header": f"bdh_fkey_test_{col_to_change}",
+        "flag": None
+    }
+    ins_data[col_to_change] = "BAD KEY"
+    insert_statement = insert(orm.BridgeDeviceHeaders)
+    with db_engine.connect() as conn:
+        print(ins_data)
+        with pytest.raises(
+            sqlexc.IntegrityError,
+            match=violation_messages[db]["Foreign"]
+        ):
+            _ = conn.execute(
+                insert_statement,
+                ins_data
             )
 
 

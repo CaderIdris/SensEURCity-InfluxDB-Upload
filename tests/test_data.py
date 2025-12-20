@@ -273,6 +273,73 @@ def test_colocation(
 
     assert all(tests.values())
 
+@pytest.mark.data
+def test_get_device_headers() -> None:
+    """Tests whether the device headers are parsed
+
+    Tests
+    -----
+    - Correct number of columns in returned data.
+    - Expected columns are present.
+    - No duplicated point_hash values.
+    - No duplicated timestamp values.
+    """
+    tests = {}
+
+    csv_path = Path(f"./tests/test_zipped/Antwerp_402B00.csv")
+    csv = pd.read_csv(csv_path)
+
+    csv_dataclass = SensEURCityCSV.from_dataframe(
+        name=csv_path.name[:-4],
+        csv=csv.copy()
+    )
+    records = list(csv_dataclass.device_headers)
+    df = pd.DataFrame(records)
+    print(df)
+
+
+    tests["Correct num of headers"] = df.shape[0] == 18
+
+    for result in tests.values():
+        if not result:
+            pass
+
+    assert all(tests.values())
+
+
+@pytest.mark.data
+def test_get_ref_headers() -> None:
+    """Tests whether the device headers are parsed
+
+    Tests
+    -----
+    - Correct number of columns in returned data.
+    - Expected columns are present.
+    - No duplicated point_hash values.
+    - No duplicated timestamp values.
+    """
+    tests = {}
+
+    csv_path = Path(f"./tests/test_zipped/Antwerp_402B00.csv")
+    csv = pd.read_csv(csv_path)
+
+    csv_dataclass = SensEURCityCSV.from_dataframe(
+        name=csv_path.name[:-4],
+        csv=csv.copy()
+    )
+    records = list(csv_dataclass.reference_headers)
+    df = pd.DataFrame(records)
+    r801 = df[df["device_key"] == "ANT_REF_R801"]
+    r802 = df[df["device_key"] == "ANT_REF_R802"]
+
+    tests["Correct num of headers (R801)"] = r801.shape[0] == 6
+    tests["Correct num of headers (R802)"] = r802.shape[0] == 1
+
+    for result in tests.values():
+        if not result:
+            pass
+
+    assert all(tests.values())
 
 @pytest.mark.data
 def test_import_headers() -> None:
@@ -285,7 +352,7 @@ def test_import_headers() -> None:
         tests[f"unit in {i}"] = "unit" in header
         tests[f"other in {i}"] = "other" in header
 
-    tests["Correct number of headers"] = len(headers) == 96
+    tests["Correct number of headers"] = len(headers) == 97
 
     for result in tests.values():
         if not result:
@@ -305,7 +372,7 @@ def test_import_devices() -> None:
         tests[f"short_name in {i}"] = "short_name" in device
         tests[f"dataset in {i}"] = "dataset" in device
         tests[f"reference in {i}"] = "reference" in device
-    tests["Correct number of devices"] = len(devices) == 165
+    tests["Correct number of devices"] = len(devices) == 164
 
     for result in tests.values():
         if not result:

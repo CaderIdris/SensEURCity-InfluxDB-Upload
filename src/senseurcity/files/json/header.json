@@ -727,6 +727,13 @@
 		"Type": "NDIR Spectroscopy"
 	},
 	{
+		"header": "Ref_CO_ppm_OSL",
+		"parameter": "CO",
+		"unit": "ppm",
+		"Sensor": "Opsis Serinus 30",
+		"Type": "NDIR Spectroscopy"
+	},
+	{
 		"header": "Ref_O3_OSL",
 		"parameter": "O3",
 		"unit": "ppb",

@@ -5,6 +5,7 @@ import datetime as dt
 from importlib.resources import files
 import json
 import logging
+import re
 from typing import Self, TypedDict
 
 import numpy as np
@@ -107,6 +108,25 @@ class DeviceRecord(TypedDict):
     dataset: str
     reference: bool
     other: dict[str, float | int | str]
+
+
+class DeviceHeaderRecord(TypedDict):
+    """Structure of a dictionary returned as a single header record.
+
+    Attributes
+    ----------
+    header : str
+        The measurement header.
+    device_key : str
+        The device measuring.
+    flag : str
+        An associated flag
+
+    """
+
+    header: str
+    device_key: str
+    flag: str | None
 
 
 class ConversionRecord(TypedDict):
@@ -336,16 +356,8 @@ class SensEURCityCSV:
         csv_subset = self.csv.loc[
             :, (*self.reference_cols, self.location_col)
         ].dropna(subset=self.location_col)
-        repeated = np.logical_and(
-            csv_subset[list(self.reference_cols)].eq(
-                csv_subset[list(self.reference_cols)].shift(-1)
-            ),
-            csv_subset[list(self.reference_cols)].eq(
-                csv_subset[list(self.reference_cols)].shift(-2)
-            ),
-            csv_subset[list(self.reference_cols)].eq(
-                csv_subset[list(self.reference_cols)].shift(-3)
-            ),
+        repeated = csv_subset[list(self.reference_cols)].eq(
+            csv_subset[list(self.reference_cols)].shift(-1)
         )
         csv_subset[repeated] = np.nan
         csv_subset["time"] = csv_subset.index
@@ -415,6 +427,76 @@ class SensEURCityCSV:
         #     yield record
         for record in grouped.iterrows():
             yield record[1].to_dict()
+
+    @property
+    def device_headers(self) -> Generator[DeviceHeaderRecord]:
+        """Set of records representing all measurement headers for a device.
+
+        Represents an iterator containing dictionaries with the following keys:
+
+        - **device_key** : str
+        - **header** : str
+        - **flag** : str | None
+        """
+        _logger.info("Querying measurement headers for %s", self.name)
+        measurement_headers = self.csv.loc[
+            :, tuple(self.measurement_cols)
+        ].dropna(axis=1, how="all").columns
+        device_headers: list[DeviceHeaderRecord] = [
+            {
+                "device_key": self.name,
+                "header": header,
+                "flag": (
+                    f"{header}_flag" if f"{header}_flag"
+                    in self.flag_cols else None
+                )
+            }
+            for header in measurement_headers
+        ]
+        yield from device_headers
+
+    @property
+    def reference_headers(self) -> Generator[DeviceHeaderRecord]:
+        """Set of records representing reference headers.
+
+        Represents an iterator containing dictionaries with the following keys:
+
+        - **device_key** : str
+        - **header** : str
+        - **flag** : None
+        """
+        _logger.info("Querying reference measurements for %s", self.name)
+        measurement_match = re.compile(r"Ref\.(?:(?:NO)|(?:CO)|(?:O)|(?:PM))")
+        city_match = {
+            "ANT": "ANT",
+            "VIT": "ANT",
+            "OSL": "OSL",
+            "ZAG": "ZAG",
+            "ISP": "ISP"
+        }
+        csv_subset = self.csv.loc[
+            :, (*self.reference_cols, self.location_col)
+        ].dropna(subset=self.location_col)
+        device_headers: list[DeviceHeaderRecord] = []
+        for loc, sub_df in csv_subset.groupby(self.location_col):
+            sub_df_headers = (
+                    set(sub_df.dropna(axis=1, how="all").columns) -
+                    {self.location_col, }
+            )
+            device_headers.extend([
+                {
+                    "device_key": loc,
+                    "header": (
+                        f"{header.replace(".", "_")}_{city_match[loc[:3]]}"
+                        if re.match(measurement_match, header) else
+                        header.replace(".", "_")
+                    ),
+                    "flag": None
+                }
+                for header in sub_df_headers
+            ])
+        print(device_headers)
+        yield from device_headers
 
 
 def get_header_records() -> Generator[HeaderRecord]:

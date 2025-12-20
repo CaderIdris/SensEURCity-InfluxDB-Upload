@@ -18,6 +18,7 @@ from senseurcity.data import (
     ColocationRecord,
     HeaderRecord,
     DeviceRecord,
+    DeviceHeaderRecord,
     ConversionRecord,
     get_header_records,
     get_device_records,
@@ -68,6 +69,7 @@ type DBRecord = (
     ColocationRecord |
     HeaderRecord |
     DeviceRecord |
+    DeviceHeaderRecord |
     ConversionRecord
 )
 
@@ -350,6 +352,20 @@ def upload_csv_data(
             logger.info("(T) Transforming csv file for %s", filename)
             csv_class = SensEURCityCSV.from_dataframe(filename, csv)
             logger.info("(L) Uploading data for %s", filename)
+            # Device headers
+            logger.info("(L) %s - Device Headers", filename)
+            upload_data_sqa(
+                csv_class.device_headers,
+                orm.BridgeDeviceHeaders,
+                engine
+            )
+            # Reference headers
+            logger.info("(L) %s - Device Headers", filename)
+            upload_data_sqa(
+                csv_class.reference_headers,
+                orm.BridgeDeviceHeaders,
+                engine
+            )
             # Device measurements
             logger.info("(L) %s - Measurements", filename)
             upload_data_sqa(
