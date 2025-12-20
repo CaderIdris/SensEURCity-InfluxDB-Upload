@@ -332,3 +332,44 @@ def test_import_unit_conversion() -> None:
             pass
 
     assert all(tests.values())
+
+
+@pytest.mark.data
+@pytest.mark.parametrize(
+    "loc_id",
+    [
+        "   This_is_bad    ",
+        "This/is/bad",
+        "This-is-bad",
+        "   This/is/bad    ",
+        "   This-is-bad    "
+    ]
+)
+def test_location_id_format(loc_id) -> None:
+    """Tests whether the Location.ID is properly parsed.
+
+    Tests
+    -----
+    - Correct parsed location id column
+    """
+    tests = {}
+
+    csv_path = Path("./tests/test_zipped/Antwerp_402B00.csv")
+    csv = pd.read_csv(csv_path)
+    csv["Location.ID"] = loc_id
+
+    csv_dataclass = SensEURCityCSV.from_dataframe(
+        name=csv_path.name[:-4],
+        csv=csv.copy()
+    )
+    parsed_csv = csv_dataclass.csv
+
+    tests["Correct num of cols"] = (
+            set(parsed_csv["Location.ID"].unique()) == {'This_is_bad',}
+    )
+
+    for result in tests.values():
+        if not result:
+            pass
+
+    assert all(tests.values())
