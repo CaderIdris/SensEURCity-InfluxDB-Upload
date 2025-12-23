@@ -156,6 +156,22 @@ The information is taken from the `metadata_sensors.csv` file.
 |unit|VARCHAR|N|N|N|The unit of measurement (e.g. nA, %)|
 |other|JSON|N|N|Y|Any other information, stored as a json for flexibility|
 
+#### bridge_device_headers
+
+This table contains headers corresponding to a measurement made by a device.
+
+|Column|Type|PK|Unique|Nullable|Description|
+|---|---|---|---|---|---|
+|device_key|VARCHAR|Y|N|N|The device key that made the measurements|
+|header|VARCHAR|Y|N|N|The header corresponding to a measurement|
+|flag|VARCHAR|N|N|N|Any flag associated with the measurement|
+
+###### Constraints
+
+`device_key` must be a PK in the `dim_device` table.
+
+`header` must be a PK in the `dim_header` table.
+
 #### dim_unit_conversion
 
 Information on how to convert from one unit of measurement to another.
