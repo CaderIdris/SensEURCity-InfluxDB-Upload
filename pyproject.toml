@@ -88,33 +88,10 @@ description = "Run mypy static tests"
 deps = ["-r {tox_root}/requirements.txt"]
 commands = [["mypy", "src", "tests"]]
 
-# legacy_tox_ini = """
-# 	[tox]
-# 	isolated_build = true
-#
-# 	[gh-actions]
-# 	python =
-# 		3.12: py312
-# 		3.13: py313, mypy, ruff
-#
-# 	[testenv]
-# 	setenv =
-# 		PYTHONPATH = {toxinidir}
-# 	deps =
-# 		-r{toxinidir}/requirements.txt
-# 	commands =
-# 		pytest --basetemp={envtmpdir}
-#
-# 	[testenv:ruff]
-# 	basepython = python3.12
-# 	deps = -r requirements.txt
-# 	commands = ruff check src tests
-#
-# 	[testenv:mypy]
-# 	basepython = python3.12
-# 	deps = -r requirements.txt
-# 	commands = mypy src
-# """
+[tool.tox.gh.python]
+"3.14" = ["3.14", "ruff", "mypy"]
+"3.12" = ["3.12"]
+
 
 [tool.pyright]
 venvPath = ""

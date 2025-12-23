@@ -6,6 +6,8 @@ Standalone ETL pipeline for [SensEURCity](https://zenodo.org/doi/10.5281/zenodo.
 
 **Contact**: [id.hayward@caegeidwad.dev](mailto:id.hayward@caegeidwad.dev)
 
+[![tests](https://github.com/CaderIdris/SensEURCity-InfluxDB-Upload/actions/workflows/tests.yml/badge.svg)](https://github.com/CaderIdris/SensEURCity-InfluxDB-Upload/actions/workflows/tests.yml)
+
 ---
 
 ## Table of Contents
