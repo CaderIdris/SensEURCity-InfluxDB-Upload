@@ -544,6 +544,20 @@
 		"Type": "Oscillating Microbalance"
 	},
 	{
+		"header": "Ref_PM10_TEOM_ISP",
+		"parameter": "PM10",
+		"unit": "µg/m³",
+		"Sensor": "Thermo Environment TEOM 1405 FDMS",
+		"Type": "Oscillating Microbalance"
+	},
+	{
+		"header": "Ref_PM10_ISP",
+		"parameter": "PM10",
+		"unit": "µg/m³",
+		"Sensor": "",
+		"Type": ""
+	},
+	{
 		"header": "Ref_NO_ISP",
 		"parameter": "NO",
 		"unit": "ppb",
@@ -650,11 +664,25 @@
 		"Type": "Light Scattering"
 	},
 	{
+		"header": "Ref_PM2_5_Beta_OSL",
+		"parameter": "PM2.5",
+		"unit": "µg/m³",
+		"Sensor": "Thermo FH 62IR",
+		"Type": "Beta Attenuation Monitor"
+	},
+	{
 		"header": "Ref_PM10_OSL",
 		"parameter": "PM10",
 		"unit": "µg/m³",
 		"Sensor": "Palas Fidas 200",
 		"Type": "Light Scattering"
+	},
+	{
+		"header": "Ref_PM10_Beta_OSL",
+		"parameter": "PM10",
+		"unit": "µg/m³",
+		"Sensor": "Thermo FH 62IR",
+		"Type": "Beta Attenuation Monitor"
 	},
 	{
 		"header": "Ref_PM1_Fidas_OSL",
@@ -769,7 +797,7 @@
 		"Type": "Chemiluminescence"
 	},
 	{
-		"header": "Ref_CO_ZAG",
+		"header": "Ref_CO_ppm_ZAG",
 		"parameter": "CO",
 		"unit": "µg/m³",
 		"Sensor": "Horiba APMA - 370",

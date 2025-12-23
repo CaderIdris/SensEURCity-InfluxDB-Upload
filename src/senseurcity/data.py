@@ -487,7 +487,7 @@ class SensEURCityCSV:
                 {
                     "device_key": loc,
                     "header": (
-                        f"{header.replace(".", "_")}_{city_match[loc[:3]]}"
+                        f"{header.replace(".", "_")}_{city_match[loc[:3].upper()]}"
                         if re.match(measurement_match, header) else
                         header.replace(".", "_")
                     ),
