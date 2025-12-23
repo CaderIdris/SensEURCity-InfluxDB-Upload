@@ -1,10 +1,10 @@
 [project]
 name = "senseurcity"
-version = "0.0.0"
-requires-python = ">=3.9"
-description = "Upload SensEURCity data to InfluxDB database"
+version = "2.0.0"
+requires-python = ">=3.12"
+description = "Reformat SensEURCity data to SQL DB"
 authors = [
-	{name="Idris Hayward", email="CaderIdrisGH@outlook.com"}
+	{name="Idris Hayward", email="id.hayward@caegeidwad.dev"}
 ]
 license = { file = "LICENSE" }
 classifiers = [
@@ -15,7 +15,10 @@ classifiers = [
 readme = "README.md"
 keywords = ["SensEURCity"]
 dependencies = [
-	"pandas"
+    "duckdb-engine>=0.17.0",
+    "pandas>=2.3.2",
+    "requests>=2.32.5",
+    "sqlalchemy>=2.0.44",
 ]
 
 [build-system]
@@ -25,8 +28,8 @@ build-backend = "setuptools.build_meta"
 [project.scripts]
 senseurcity = "senseurcity.main:cli"
 
-[tool.flake8]
-exclude = "docs"
+[tool.setuptools.package-data]
+"senseurcity.files.json" = ["*.json"]
 
 [tool.pytest.ini_options]
 testpaths = [
@@ -34,11 +37,21 @@ testpaths = [
 ]
 
 markers = [
+	"orm",
+	"sqlite",
+	"postgres",
+	"base_v1",
+	"zipfile",
+	"data"
 ]
 
 addopts = [
 	"--html=reports/tests/index.html",
-	"--self-contained-html"
+	"--self-contained-html",
+	"--cov-fail-under=99",
+	"--cov-report=html:reports/coverage",
+	"--cov-report=term-missing",
+	"--cov=senseurcity"
 ]
 
 [tool.mypy]
@@ -56,36 +69,97 @@ warn_unused_configs = true
 no_implicit_reexport = true
 
 [tool.tox]
-legacy_tox_ini = """
-	[tox]
-	minversion = 4.0
-	envlist = py39, py311, flake8, mypy
-	isolated_build = true
+requires = ["tox>=4.20"]
+env_list = ["py312", "py314", "ruff", "mypy"]
 
-	[gh-actions]
-	python =
-		3.9: py39
-		3.11: py311, mypy, flake8
+[tool.tox.env_run_base]
+description = "Run test under {base_python}"
+set_env = {PYTHONPATH = "{tox_root}"}
+deps = ["-r {tox_root}/requirements.txt"]
+commands = [["pytest", "--basetemp={envtmpdir}"]]
 
-	[testenv]
-	setenv =
-		PYTHONPATH = {toxinidir}
-	deps =
-		-r{toxinidir}/requirements.txt
-	commands =
-		pytest --basetemp={envtmpdir}
+[tool.tox.env.ruff]
+description = "Run ruff linting and static tests"
+deps = ["-r {tox_root}/requirements.txt"]
+commands = [["ruff", "check", "src", "tests"]]
 
-	[testenv:flake8]
-	basepython = python3.11
-	deps = -r requirements.txt
-	commands = flake8 src tests
+[tool.tox.env.mypy]
+description = "Run mypy static tests"
+deps = ["-r {tox_root}/requirements.txt"]
+commands = [["mypy", "src", "tests"]]
 
-	[testenv:mypy]
-	basepython = python3.11
-	deps = -r requirements.txt
-	commands = mypy src
-"""
+[tool.tox.gh.python]
+"3.14" = ["3.14", "ruff", "mypy"]
+"3.12" = ["3.12"]
+
 
 [tool.pyright]
 venvPath = ""
 venv = ".venv"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+    "pdoc>=15.0.4",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "pytest-html>=4.1.1",
+    "ruff>=0.13.1",
+    "testcontainers>=4.13.2",
+    "types-requests>=2.32.4.20250913",
+]
+dev-postgres = [
+    "psycopg[binary]>=3.2.12",
+    "testcontainers>=4.13.2",
+]
+postgres = [
+    "psycopg>=3.2.12",
+]
+
+[tool.ruff.lint]
+select = [
+	"F",  # pyflakes: General
+	"E",  # pycodestyle: General errors
+	"W",  # pycodestyle: General warnings
+	"C90",  # mccabe: Name complexity
+	"N",  # pep8-naming: Use proper names
+	"D",  # pydocstyle: Docstring linting
+	"UP",  # pyupgrade:  Don't use old code standards
+	"YTT",  # flake8-2020: Extra flake8 rules
+	"ANN",  # flake8-annotations: Used for type hinting
+	"S",  # flake8-bandit: Security linting
+	"BLE",  # flake8-blind-except: Don't accept raw exceptions
+	"FBT",  # flake8-boolean-trap: Avoid the boolean trap
+	"B",  # flake8-bugbear: Useful hints
+	"A",  # flake8-builtins: Don't use keywords reserved by Python
+	"C4",  # flake8-comprehensions: Useful hints about comprehensions
+	"EM",  # flake8-errmsg: Useful hints when raising exceptions
+	"ISC",  # flake8-implicit-str-concat: Warns against bad string concatenation 
+	"ICN",  # flake8-import-conventions: Use common import names
+	"G",  # flake8-logging-format: Format logging calls properly
+	"PIE",  # flake8-pie: misc lints
+	"T20",  # flake8-print: No print statements, use logging!
+	"PT",  # flake8-pytest-style: Lint pytest files
+	"Q",  # flake8-quotes: Quote linting
+	"RET",  # flake8-return: Lint return values from functions
+	"SLF",  # flake8-self: Don't use a classes private member
+	"SIM",  # flake8-simplify: Simplify your code to make it more readable
+	"TCH",  # flake8-type-checking: Remove overhead from type checking
+	"ARG",  # flake8-unused-arguments: Check for unused arguments
+	"PTH",  # flake8-use-pathlib: Use pathlib wherever possible!
+	"PD",  # pandas-vet: Pandas specific linting
+	"PGH",  # pygrep-hooks: Don't allow coverall noqa ignore comments
+	"TRY",  # tryceratops: Lint try-except blocks
+	"NPY",  # Numpy-specific-rules: Numpy linting
+	"PERF",  # perflint: Improve performance
+	"LOG",  # flake8-logging: Logging specific linting
+	"RUF",  # Ruff-specific-rules: Extra rules
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = [
+	"D",
+	"ARG",
+	"ANN",
+	"S"
+]
