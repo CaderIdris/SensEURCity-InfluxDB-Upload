@@ -350,7 +350,7 @@ def test_import_headers() -> None:
         tests[f"unit in {i}"] = "unit" in header
         tests[f"other in {i}"] = "other" in header
 
-    tests["Correct number of headers"] = len(headers) == 97
+    tests["Correct number of headers"] = len(headers) == 101
 
     for result in tests.values():
         if not result:

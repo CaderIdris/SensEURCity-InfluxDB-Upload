@@ -247,7 +247,7 @@ def upload_data_sqa(
     records: Generator[DBRecord],
     table: type[orm._BaseV1],
     engine: Engine,
-    batch_size: int = 25
+    batch_size: int = 25000
 ) -> None:
     """Upload measurements to DB via SQLAlchemy.
 
