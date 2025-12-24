@@ -356,14 +356,14 @@ def upload_csv_data(
             logger.info("(L) %s - Device Headers", filename)
             upload_data_sqa(
                 csv_class.device_headers,
-                orm.BridgeDeviceHeaders,
+                orm.BridgeDeviceHeader,
                 engine
             )
             # Reference headers
             logger.info("(L) %s - Device Headers", filename)
             upload_data_sqa(
                 csv_class.reference_headers,
-                orm.BridgeDeviceHeaders,
+                orm.BridgeDeviceHeader,
                 engine
             )
             # Device measurements

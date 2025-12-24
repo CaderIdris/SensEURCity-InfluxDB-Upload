@@ -90,7 +90,7 @@ def test_alt_schema(db_path: Path) -> None:
         "fact_measurement",
         "dim_colocation",
         "meta_files_processed",
-        "bridge_device_headers"
+        "bridge_device_header"
     )
 
     for table in expected_tables:
@@ -137,7 +137,7 @@ def test_create_tables(db: DBs, connections: dict[DBs, Engine | None]) -> None:
         "fact_measurement",
         "dim_colocation",
         "meta_files_processed",
-        "bridge_device_headers"
+        "bridge_device_header"
     )
 
     for table in expected_tables:
@@ -580,7 +580,7 @@ def test_bridge_device_header(
         ("ANT_123456_TEST_BDH", "no_test_BDH"),
         ("ANT_123567_TEST_BDH", "ox_test_BDH")
     )
-    insert_statement = insert(orm.BridgeDeviceHeaders)
+    insert_statement = insert(orm.BridgeDeviceHeader)
     with db_engine.connect() as conn:
         result = conn.execute(
             insert_statement,
@@ -658,7 +658,7 @@ def test_bridge_device_header_dupe(
             "flag": "ox_test_BDH_flag"
         },
     ]
-    insert_statement = insert(orm.BridgeDeviceHeaders)
+    insert_statement = insert(orm.BridgeDeviceHeader)
     with db_engine.connect() as conn, pytest.raises(
         sqlexc.IntegrityError,
         match=violation_messages[db]["Unique"]
@@ -725,7 +725,7 @@ def test_bridge_device_header_null(
         "flag": None
     }
     ins_data[col_to_null] = None
-    insert_statement = insert(orm.BridgeDeviceHeaders)
+    insert_statement = insert(orm.BridgeDeviceHeader)
     with db_engine.connect() as conn, pytest.raises(
         sqlexc.IntegrityError,
         match=violation_messages[db]["Null"]
@@ -792,7 +792,7 @@ def test_bridge_device_header_fkey(
         "flag": None
     }
     ins_data[col_to_change] = "BAD KEY"
-    insert_statement = insert(orm.BridgeDeviceHeaders)
+    insert_statement = insert(orm.BridgeDeviceHeader)
     with db_engine.connect() as conn, pytest.raises(
         sqlexc.IntegrityError,
         match=violation_messages[db]["Foreign"]

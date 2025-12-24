@@ -82,7 +82,7 @@ class DimHeader(_BaseV1):
     unit: Mapped[str] = mapped_column(nullable=False)
     other: Mapped[dict[str, Any]] = mapped_column(nullable=True)
 
-class BridgeDeviceHeaders(_BaseV1):
+class BridgeDeviceHeader(_BaseV1):
     """Declarative mapping of the headers corresponding to a device table.
 
     This table is used to store all headers that a device uses. This can be
@@ -109,7 +109,7 @@ class BridgeDeviceHeaders(_BaseV1):
 
     Schema name: **measurement**
 
-    Table name: **bridge_device_headers**
+    Table name: **bridge_device_header**
 
     Schema
     ------
@@ -118,7 +118,7 @@ class BridgeDeviceHeaders(_BaseV1):
     - *flag* [str]: A flag associated with the header.
     """
 
-    __tablename__ = "bridge_device_headers"
+    __tablename__ = "bridge_device_header"
 
     device_key: Mapped[str] = mapped_column(primary_key=True)
     header: Mapped[str] = mapped_column(primary_key=True)
