@@ -8,6 +8,8 @@ from types import GeneratorType
 from typing import Literal, TypedDict
 from zipfile import ZipFile
 
+from aqorm.engine import get_engine
+import aqorm.orm as orm
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert
@@ -25,8 +27,6 @@ from senseurcity.data import (
     get_unit_conversion_records,
     SensEURCityCSV
 )
-from senseurcity.engine import get_engine
-import senseurcity.orm as orm
 from senseurcity.zipped import download_data, Cities, get_csvs
 
 

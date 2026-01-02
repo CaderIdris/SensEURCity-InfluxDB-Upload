@@ -229,8 +229,8 @@ class SensEURCityCSV:
 
         _logger.info("Parsing records from %s", name)
         # Fix strange space in some columns
-        csv[location_col] = (
-            csv[location_col]
+        csv.loc[:, location_col] = (
+            csv.loc[:, location_col]
             .str.strip()
             .str.replace("/", "_")
             .str.replace("-", "_")
@@ -266,7 +266,10 @@ class SensEURCityCSV:
 
 
         # Parse date and calculate hash columns
-        csv[date_col] = pd.to_datetime(csv[date_col], format="%Y-%m-%dT%H:%M:%SZ")
+        csv.loc[:, date_col] = pd.to_datetime(
+            csv.loc[:, date_col],
+            format="%Y-%m-%dT%H:%M:%SZ"
+        )
         csv = csv.set_index(date_col)
         csv.index.name = "date"
 
@@ -403,7 +406,7 @@ class SensEURCityCSV:
         csv_subset.loc[changed_rows["index"], "Group"] = list(
                 changed_rows.index
         )
-        csv_subset["Group"] = csv_subset["Group"].ffill()
+        csv_subset.loc[:, "Group"] = csv_subset.loc[:, "Group"].ffill()
 
         # Remove blank periods
         csv_subset = csv_subset[csv_subset[self.location_col] != ""]

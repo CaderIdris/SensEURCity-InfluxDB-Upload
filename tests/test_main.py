@@ -17,7 +17,7 @@ from senseurcity.main import (
     upload_csv_data,
     cli
 )
-from senseurcity import orm
+from aqorm import orm
 from senseurcity.zipped import Cities
 
 from conftest import DBs

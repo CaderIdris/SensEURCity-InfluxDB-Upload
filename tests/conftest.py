@@ -5,7 +5,7 @@ import zipfile
 import pytest
 from sqlalchemy.engine.base import Engine
 
-from senseurcity import engine, orm
+from aqorm import engine, orm
 
 try:
     from docker.errors import DockerException
